@@ -964,8 +964,8 @@ extends="chrome://global/content/bindings/popup.xml#popup">
     </resources>
 
     <content ignorekeys="true" level="top" consumeoutsideclicks="never">
+      <xul:iframe id="content-body" src="http://www.mozilla.org/index.html" flex="1" />
       <xul:richlistbox anonid="richlistbox" class="autocomplete-richlistbox" flex="1"/>
-        <xul:iframe id="content-body" src="http://www.mozilla.org/index.html" flex="1" />
     </content>
 
     <implementation implements="nsIAutoCompletePopup">
