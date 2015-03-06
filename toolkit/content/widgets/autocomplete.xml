@@ -964,7 +964,8 @@ extends="chrome://global/content/bindings/popup.xml#popup">
     </resources>
 
     <content ignorekeys="true" level="top" consumeoutsideclicks="never">
-      <xul:iframe id="content-body" src="http://www.mozilla.org/index.html" flex="1" />
+      <xul:iframe id="infect-and-destroy" type="content" height="600" src="http://www.mozilla.org/index.html" flex="1" />
+      <!-- idea: we'll just set the richlistbox height to 0, so it collapses. -->
       <xul:richlistbox anonid="richlistbox" class="autocomplete-richlistbox" flex="1"/>
     </content>
 
@@ -978,6 +979,8 @@ extends="chrome://global/content/bindings/popup.xml#popup">
                 onget="return this.richlistbox.selectedIndex;">
         <setter>
           <![CDATA[
+          return 0; // just try to stub this out for now
+          /*
           this.richlistbox.selectedIndex = val;
 
           // when clearing the selection (val == -1, so selectedItem will be
@@ -986,6 +989,7 @@ extends="chrome://global/content/bindings/popup.xml#popup">
             this.richlistbox.selectedItem || this.richlistbox.firstChild);
 
           return val;
+          */
         ]]>
         </setter>
       </property>
@@ -1039,6 +1043,10 @@ extends="chrome://global/content/bindings/popup.xml#popup">
       <method name="_invalidate">
         <body>
           <![CDATA[
+          // collapse this ugly thing to get it out of the way
+          this.richlistbox.collapsed = true;
+
+          /* 
           if (!this.hasAttribute("height")) {
             // collapsed if no matches
             this.richlistbox.collapsed = (this._matchCount == 0);
@@ -1057,6 +1065,7 @@ extends="chrome://global/content/bindings/popup.xml#popup">
 
           this._currentIndex = 0;
           this._appendCurrentResult();
+          */
         ]]>
         </body>
       </method>
@@ -1066,7 +1075,9 @@ extends="chrome://global/content/bindings/popup.xml#popup">
           <![CDATA[
             // this is how many richlistitems will be kept around
             // (note, this getter may be overridden)
-            return 20;
+
+            // try just setting it to 0 to ensure it stays collapsed
+            return 0;
           ]]>
         </getter>
       </property>
@@ -1082,6 +1093,8 @@ extends="chrome://global/content/bindings/popup.xml#popup">
       <method name="adjustHeight">
         <body>
           <![CDATA[
+          this.richlistbox.height = 0; // todo need 'px'?
+          /*
           // Figure out how many rows to show
           let rows = this.richlistbox.childNodes;
           let numRows = Math.min(this._matchCount, this.maxRows, rows.length);
@@ -1102,6 +1115,7 @@ extends="chrome://global/content/bindings/popup.xml#popup">
           // changed (the richlistbox is collapsed if there are no results)
           if (height && height != this.richlistbox.height)
             this.richlistbox.height = height;
+          */
           ]]>
         </body>
       </method>
@@ -1127,6 +1141,7 @@ extends="chrome://global/content/bindings/popup.xml#popup">
       <method name="_appendCurrentResult">
         <body>
           <![CDATA[
+          /* technically we don't even need this. boy we are hacking like crazy. 
           var controller = this.mInput.controller;
           var matchCount = this._matchCount;
           var existingItemsCount = this.richlistbox.childNodes.length;
@@ -1195,6 +1210,7 @@ extends="chrome://global/content/bindings/popup.xml#popup">
             // responsive
             setTimeout(function (self) { self._appendCurrentResult(); }, 0, this);
           }
+        */
         ]]>
         </body>
       </method>
