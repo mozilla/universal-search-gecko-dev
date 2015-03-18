@@ -2,6 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+// note to self - this is the file we'll use to shuffle data to and fro.
+// putting a comment in here so I can find it in the git log ^_^
+
 /**
  * WebChannel is an abstraction that uses the Message Manager and Custom Events
  * to create a two-way communication channel between chrome and content code.
