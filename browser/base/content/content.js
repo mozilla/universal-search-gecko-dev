@@ -540,6 +540,8 @@ addEventListener("WebChannelMessageToChrome", function (e) {
   // if target is window then we want the document principal, otherwise fallback to target itself.
   let principal = e.target.nodePrincipal ? e.target.nodePrincipal : e.target.document.nodePrincipal;
 
+  console.log('message from content received: ' + JSON.stringify(e.detail));
+
   if (e.detail) {
     sendAsyncMessage("WebChannelMessageToChrome", e.detail, null, principal);
   } else  {
@@ -549,6 +551,7 @@ addEventListener("WebChannelMessageToChrome", function (e) {
 
 // Add message listener for "WebChannelMessageToContent" messages from chrome scripts
 addMessageListener("WebChannelMessageToContent", function (e) {
+  console.log('message from chrome received: ' + JSON.stringify(e.data));
   if (e.data) {
     content.dispatchEvent(new content.CustomEvent("WebChannelMessageToContent", {
       detail: Cu.cloneInto({
