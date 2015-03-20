@@ -892,8 +892,11 @@ extends="chrome://global/content/bindings/popup.xml#popup">
       <method name="onPopupClick">
         <parameter name="aEvent"/>
         <body><![CDATA[
-          var controller = this.view.QueryInterface(Components.interfaces.nsIAutoCompleteController);
-          controller.handleEnter(true);
+          // disabling this function gives the click to the underlying page, but does not
+          // prevent the popup from closing.
+          //
+          // var controller = this.view.QueryInterface(Components.interfaces.nsIAutoCompleteController);
+          // controller.handleEnter(true);
         ]]></body>
       </method>
     </implementation>
@@ -1901,8 +1904,20 @@ extends="chrome://global/content/bindings/popup.xml#popup">
       <field name="mLastMoveTime">Date.now()</field>
     </implementation>
     <handlers>
+      <handler event="click">
+        <![CDATA[
+        // grab the event, try to prevent the popup from closing
+        return;
+      ]]>
+      </handler>
       <handler event="mouseup">
         <![CDATA[
+        // grab the event, try to prevent the popup from closing
+        return;
+        //event.stopImmediatePropagation();
+        //event.preventDefault();
+        //return;
+
         // on click, let's pass that event through to the underlying page
 
         // don't call onPopupClick for the scrollbar buttons, thumb, slider, etc.
@@ -1918,7 +1933,7 @@ extends="chrome://global/content/bindings/popup.xml#popup">
         // this.parentNode is a Panel with id PopupAutoCompleteRichResult, and its parent is
         // a popupset with id mainPopupSet. Find this by shift + right clicking the opened
         // autocomplete popup, which will open a XUL inspector window. hells yes.
-        this.parentNode.onPopupClick(event);
+        // this.parentNode.onPopupClick(event);
 
         // let's pass the click downwards with the magic of computers
         // 1. source toolkit/modules/webchannel
