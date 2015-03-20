@@ -344,7 +344,8 @@
 
       <method name="closePopup">
         <body><![CDATA[
-          this.popup.closePopup();
+          // zomg! THIS is the guy that closes the popup
+          // this.popup.closePopup();
         ]]></body>
       </method>
 
