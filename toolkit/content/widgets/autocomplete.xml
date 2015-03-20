@@ -79,11 +79,14 @@
 
         // while we're at it, let's grab a pointer to the iframe, too
         this.mFrame = document.getElementById("infect-and-destroy");
+        console.log('does this.mFrame has a messageManager? ' + !!this.mFrame.messageManager);
 
         // set up the channel
+        console.log('logging from chrome');
         this.mChannel = new WebChannel(this.mChannelId,
                                        Services.io.newURI('http://localhost', null, null));
         this.mChannel.listen(function (id, msg, sender) {
+          alert('message received by chrome: ' + msg);
           if (id != this.mChannelId) { return; }
           // for right now, whatever the message was, bounce it right back,
           // so we can convince ourselves this is working
@@ -993,7 +996,8 @@ extends="chrome://global/content/bindings/popup.xml#popup">
     </resources>
 
     <content ignorekeys="false" level="top" consumeoutsideclicks="true">
-      <xul:iframe id="infect-and-destroy" type="content" height="600" src="http://localhost/codez/github/the-super-friends-autocomplete-iframe/iframe.html" flex="1" />
+      <xul:browser id="infect-and-destroy" type="content" height="600" minheight="600" src="http://localhost/codez/github/the-super-friends-autocomplete-iframe/iframe.html" flex="1" />
+
       <!-- idea: we'll just set the richlistbox height to 0, so it collapses. -->
       <xul:richlistbox anonid="richlistbox" class="autocomplete-richlistbox" flex="1"/>
     </content>
