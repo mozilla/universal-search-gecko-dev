@@ -59,6 +59,8 @@
         sizemode="normal"
         persist="screenX screenY width height sizemode">
 
+# wtfs is this hiddenWindow thing all about?
+#
 # All JS files which are not content (only) dependent that browser.xul
 # wishes to include *must* go into the global-scripts.inc file
 # so that they can be shared by macBrowserOverlay.xul.
