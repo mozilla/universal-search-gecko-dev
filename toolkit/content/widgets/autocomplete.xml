@@ -47,6 +47,9 @@
       <field name="mSearchNames">null</field>
       <field name="mIgnoreInput">false</field>
       <field name="mEnterEvent">null</field>
+      <field name="mFrame">null</field>
+      <field name="mChannel">null</field>
+      <field name="mChannelId">null</field>
 
       <field name="_searchBeginHandler">null</field>
       <field name="_searchCompleteHandler">null</field>
@@ -64,6 +67,28 @@
 
         // For security reasons delay searches on pasted values.
         this.inputField.controllers.insertControllerAt(0, this._pasteController);
+
+        // yay, WebChannel!
+        // start by declaring the channel id
+        this.mChannelId = 'ohai';
+
+        // add the WebChannel service to 'this', so we can communicate with the iframe
+        // NOTE: we have hacked WebChannel to allow communication over http (as opposed
+        // to https) to make local development simpler
+        Components.utils.import("resource://gre/modules/WebChannel.jsm", this);
+
+        // while we're at it, let's grab a pointer to the iframe, too
+        this.mFrame = document.getElementById("infect-and-destroy");
+
+        // set up the channel
+        this.mChannel = new WebChannel(this.mChannelId,
+                                       Services.io.newURI('http://localhost', null, null));
+        this.mChannel.listen(function (id, msg, sender) {
+          if (id != this.mChannelId) { return; }
+          // for right now, whatever the message was, bounce it right back,
+          // so we can convince ourselves this is working
+          this.mChannel.send({ data: msg }, sender);
+        });
       ]]></constructor>
 
       <destructor><![CDATA[
@@ -968,7 +993,7 @@ extends="chrome://global/content/bindings/popup.xml#popup">
     </resources>
 
     <content ignorekeys="false" level="top" consumeoutsideclicks="true">
-      <xul:iframe id="infect-and-destroy" type="content" height="600" src="http://localhost/codez/foo.html" flex="1" />
+      <xul:iframe id="infect-and-destroy" type="content" height="600" src="http://localhost/codez/github/the-super-friends-autocomplete-iframe/iframe.html" flex="1" />
       <!-- idea: we'll just set the richlistbox height to 0, so it collapses. -->
       <xul:richlistbox anonid="richlistbox" class="autocomplete-richlistbox" flex="1"/>
     </content>
