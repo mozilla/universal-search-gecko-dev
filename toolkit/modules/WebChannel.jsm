@@ -159,7 +159,9 @@ this.WebChannel = function(id, originOrPermission) {
       // the scheme is https://.
       let uri = Services.io.newURI(requestPrincipal.origin, null, null);
       if (uri.scheme != "https") {
-        return false;
+        // let's just see if it works without the check. bug 1066517 seems to
+        // imply that it should.
+        // return false;
       }
       // OK - we have https - now we can check the permission.
       let perm = Services.perms.testExactPermissionFromPrincipal(requestPrincipal,
