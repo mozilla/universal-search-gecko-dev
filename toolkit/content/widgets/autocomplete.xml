@@ -69,8 +69,17 @@
         this.inputField.controllers.insertControllerAt(0, this._pasteController);
 
         // yay, WebChannel!
+        // first, let's actully load the content.js file
+        var mm;
+        try {
+          mm = window.getGroupMessageManager("browsers");
+          mm.loadFrameScript("chrome://browser/content/content.js", true);
+        } catch (e) {
+          console.log('loading content.js failed: ' + e);
+          throw e;
+        }
         // start by declaring the channel id
-        this.mChannelId = 'ohai';
+        this.mChannelId = "ohai";
 
         // add the WebChannel service to 'this', so we can communicate with the iframe
         // NOTE: we have hacked WebChannel to allow communication over http (as opposed
