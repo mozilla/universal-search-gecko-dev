@@ -1495,6 +1495,8 @@ nsAutoCompleteController::ProcessResult(int32_t aSearchIndex, nsIAutoCompleteRes
     nsCOMPtr<nsIAutoCompletePopup> popup;
     input->GetPopup(getter_AddRefs(popup));
     NS_ENSURE_TRUE(popup != nullptr, NS_ERROR_FAILURE);
+
+    // looks like the invalidate method is the one to deal with on the XBL side
     popup->Invalidate();
 
     uint32_t minResults;

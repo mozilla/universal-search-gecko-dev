@@ -60,6 +60,9 @@
         this.mController = Components.classes["@mozilla.org/autocomplete/controller;1"].
           getService(Components.interfaces.nsIAutoCompleteController);
 
+        // TODO not working. am I inserting this in a base class? wrong spot? 
+        // this.mFrame = document.getAnonymousElementByAttribute(this, "anonid", "infect-and-destroy");
+
         this._searchBeginHandler = this.initEventHandler("searchbegin");
         this._searchCompleteHandler = this.initEventHandler("searchcomplete");
         this._textEnteredHandler = this.initEventHandler("textentered");
@@ -1062,8 +1065,32 @@ on popupshown,
       <method name="_invalidate">
         <body>
           <![CDATA[
-          // collapse this ugly thing to get it out of the way
+          // always collapse the xul result list box
           this.richlistbox.collapsed = true;
+
+          console.log('_invalidate called');
+
+          // for now, let's just always call the result fn:
+          this._appendCurrentResult();
+
+          // TODO: sometimes the c++ file closes the popup, sometimes it seems to
+          // close itself here in XUL-land. understand why and when to use each.
+          // is it just that the c++ can see if the status is RESULT_NOMATCH_ONGOING,
+          // and this code cannot?
+
+          // logic of existing XUL code:
+          //
+          // if the popup has no height, i.e. is not already open,
+          //   close it if there are no matches,
+          //   else adjustHeight(), which I guess pops it open (?),
+          //     and then adjustHeight again on the next turn, after the rows render
+          // if there are more existing richlistitems than current results,
+          //   collapse those (but don't remove them - lot of DOM node caching here)
+          // reset the _currentIndex to 0 (why?)
+          // and _appendCurrentResult (?)
+          
+            
+          
 
 
 
@@ -1162,6 +1189,61 @@ on popupshown,
       <method name="_appendCurrentResult">
         <body>
           <![CDATA[
+          console.log('_appendCurrentResult called');
+
+          // meaning of the original XUL code:
+          //
+          // for i up to maxRows: 
+          //   (use _currentIndex to decide how many items have been shoved into the dropdown)
+          //   (bail if the matchCount is less than the _currentIndex)
+          //   create or reuse a richlistitem:
+          //     trim whitespace, unescape the URI, use an existing item if it's a match, else render a new one
+          //     set a bunch of attributes on the item
+          //     if it's an existing listitem, uncollapse it; else append it to the richlistbox
+          //  finally, increment the _currentIndex counter, fire the onResultsAdded callback (if any),
+          //  and yield to the UI thread before rendering the next item, to keep the urlbar typing experience responsive
+          //
+          //////////////////////////////
+          //
+          // thoughts on our iframey implementation:
+          //
+          // it seems like the _currentIndex is passed to the controller to fetch the ith item,
+          // so we _could_ keep track of _currentIndex as the existing code does: increment it as you
+          // build up the list of results, reset it to zero when you want to invalidate the old results.
+          //
+          // but the simplest thing would be to grab, say, the first 5 results, every time, serialize
+          // them as JSON, and toss over the wall to the iframe.
+          // let's start there.
+
+          var controller = this.mInput.controller;
+          var maxResults = 5;
+          var results = [];
+          for (var i = 0; i < maxResults; i++) {
+            results.push({
+              url: Components.classes["@mozilla.org/intl/texttosuburi;1"].
+                    getService(Components.interfaces.nsITextToSubURI).
+                    unEscapeURIForUI("UTF-8", controller.getValueAt(i)),
+              // TODO: figure out how to convert the chrome:// images into data-uris to be passed to the iframe
+              //image: this._getImageURLForResolution(window, controller.getImageAt(i), 16, 16),
+              title: controller.getCommentAt(i),
+              type: controller.getStyleAt(i),
+              text: controller.searchString.replace(/^\s+/, "").replace(/\s+$/, "")
+            });
+          }
+
+          // send the results to the iframe
+          // TODO figure out how to use 'this' to avoid re-importing everything
+          var brow = document.getAnonymousElementByAttribute(this, "anonid", "infect-and-destroy");
+          // TODO do we need this? I think not - the same JS should still be loaded in the iframe
+          //var mm = brow.messageManager;
+          //mm.loadFrameScript('chrome://browser/content/content.js', true);
+
+          console.log('attempting to send some results to content: ' + JSON.stringify(results));
+          Components.utils.import("resource://gre/modules/WebChannel.jsm", this);
+          var channelId = "ohai";
+          var chan = new this.WebChannel(channelId,
+                                         Services.io.newURI('http://localhost', null, null));
+          chan.send({ type: 'autocomplete-search-results', data: results }, brow);
 
           /* technically we don't even need this. boy we are hacking like crazy. 
           var controller = this.mInput.controller;
@@ -1276,7 +1358,6 @@ on popupshown,
         }
         // 1. get the anon browser element
         var brow = document.getAnonymousElementByAttribute(this, "anonid", "infect-and-destroy");
-        console.log('the anonymouse brow element is ' + brow);
         // 2. set a load handler on it which loads the content.js file
         brow.addEventListener('load', function browLoaded() {
           console.log('anonymous browser element fired "load" event');
@@ -1311,7 +1392,8 @@ on popupshown,
           this.browInitialized = true;
         }, true);
         // 3. set browser.src to the iframe, which will trigger onload when it's done
-        brow.setAttribute("src", "http://localhost/codez/github/the-super-friends-autocomplete-iframe/iframe.html");
+        //yypbrow.setAttribute("src", "http://localhost/codez/github/the-super-friends-autocomplete-iframe/iframe.html");
+        brow.setAttribute("src", "http://localhost/iframe.html");
         // 4. TODO: maybe close the iframe on popuphidden?
       ]]></handler>
 
