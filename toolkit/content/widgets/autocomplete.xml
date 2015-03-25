@@ -1417,8 +1417,7 @@ on popupshown,
         brow.addEventListener('load', browLoaded.bind(this), true);
 
         // 3. set browser.src to the iframe, which will trigger onload when it's done
-        //brow.setAttribute("src", "http://localhost/codez/github/the-super-friends-autocomplete-iframe/iframe.html");
-        brow.setAttribute("src", "http://localhost/iframe.html");
+        brow.setAttribute("src", "http://localhost/iframe.html?cachebust=" + Date.now());
         // 4. TODO: maybe close the iframe on popuphidden?
       ]]></handler>
 
