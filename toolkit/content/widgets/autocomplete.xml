@@ -1236,130 +1236,76 @@ on popupshown,
           // send the results to the iframe
           // TODO figure out how to use 'this' to avoid re-importing everything
           var brow = document.getAnonymousElementByAttribute(this, "anonid", "infect-and-destroy");
-          // TODO do we need this? I think not - the same JS should still be loaded in the iframe
-          //var mm = brow.messageManager;
-          //mm.loadFrameScript('chrome://browser/content/content.js', true);
-
-          console.log('attempting to send some results to content: ' + JSON.stringify(results));
           Components.utils.import("resource://gre/modules/WebChannel.jsm", this);
           var channelId = "ohai";
           var chan = new this.WebChannel(channelId,
                                          Services.io.newURI('http://localhost', null, null));
           chan.send({ type: 'autocomplete-search-results', data: results }, brow);
 
+
+
+
+
+
+
+
           //
           // now, we also want to include the search suggestions in the output, via some separate signal.
-          // ( face-with-open-mouth-and-cold-sweat-emoji )
+          // a lot of this code lifted from browser/modules/AboutHome.jsm and browser/modules/ContentSearch.jsm
+          // ( face-with-open-mouth-and-cold-sweat-emoji ), heh
+          //
+          // TODO: maybe just send signals to ContentSearch instead, the problem there is that I couldn't
+          // figure out which message manager to pass into ContentSearch, in order to get the response message back.
+          // it's possible all of this code was unnecessary and we could just fire a GetSuggestions message into
+          // the ether, and fully expect to get a Suggestions object back with the suggestions. /me shrugs
           // 
+          //var suggestionData = { engineName: engine.name, searchString: gURLBar.inputField.value, remoteTimeout: 5000 };
+          //ContentSearch._onMessageGetSuggestions(brow.messageManager, suggestionData);
+
           var triggerSearch = function(status) {
-            // straight-up copying this code from browser/modules/AboutHome.jsm
-            if (!Components.isSuccessCode(status)) {
+            // if Services.search was already initialized, then we called this function directly with no args
+            // otherwise, the service was just initialized, and we actually do care about the status code passed in
+            if (status && !Components.isSuccessCode(status)) {
               console.log('oh no, search init failed, status was: ' + status);
               return;
             }
 
-            let engine = Services.search.currentEngine;
-            // it appears that second param could be "application/x-suggestions+json" or "text/html" or null
-            // see, eg, browser/components/search/test/browser_google.js
-            /* if I set the second param to "application/x-suggestions+json", the response is:
-            {
-                "postData": null,
-                "uri": {
-                    "spec": "https://search.yahoo.com/sugg/ff?output=fxjson&appid=ffd&command=mozilla+",
-                    "prePath": "https://search.yahoo.com",
-                    "scheme": "https",
-                    "userPass": "",
-                    "username": "",
-                    "password": "",
-                    "hostPort": "search.yahoo.com",
-                    "host": "search.yahoo.com",
-                    "port": -1,
-                    "path": "/sugg/ff?output=fxjson&appid=ffd&command=mozilla+",
-                    "asciiSpec": "https://search.yahoo.com/sugg/ff?output=fxjson&appid=ffd&command=mozilla+",
-                    "asciiHost": "search.yahoo.com",
-                    "originCharset": "UTF-8",
-                    "ref": "",
-                    "specIgnoringRef": "https://search.yahoo.com/sugg/ff?output=fxjson&appid=ffd&command=mozilla+",
-                    "hasRef": false
-                }
-            }
-            
-            and, if I then surf to the search.yahoo suggestion page, I see:
+            Components.utils.import(this, "SearchSuggestionController", "resource://gre/modules/SearchSuggestionController.jsm");
 
-            [
-              "mozilla ", 
-              ["mozilla firefox", "mozilla firefox 2015 free download", "mozilla firefox free download", "mozilla firefox start page", "mozilla firefox update", "mozilla firefox free download for mac", "mozilla thunderbird", "mozilla firefox 2014 free download", "mozilla thunderbird email", "mozilla firefox browser"],
-              [],
-              []
-            ]
+            let MAX_LOCAL_SUGGESTIONS = 3;
+            let MAX_SUGGESTIONS = 6;
+            let REMOTE_TIMEOUT = 5000; // probably far too high, but idk, whatever
+            let isPrivateBrowsingSession = false; // we don't care about this right now
 
-            -------------------------------
-            if I set the second param to "text/html", the response is:
-            {
-                "postData": null,
-                "uri": {
-                    "spec": "https://search.yahoo.com/yhs/search?p=mozilla+&ei=UTF-8&hspart=mozilla&hsimp=yhs-001",
-                    "prePath": "https://search.yahoo.com",
-                    "scheme": "https",
-                    "userPass": "",
-                    "username": "",
-                    "password": "",
-                    "hostPort": "search.yahoo.com",
-                    "host": "search.yahoo.com",
-                    "port": -1,
-                    "path": "/yhs/search?p=mozilla+&ei=UTF-8&hspart=mozilla&hsimp=yhs-001",
-                    "asciiSpec": "https://search.yahoo.com/yhs/search?p=mozilla+&ei=UTF-8&hspart=mozilla&hsimp=yhs-001",
-                    "asciiHost": "search.yahoo.com",
-                    "originCharset": "UTF-8",
-                    "ref": "",
-                    "specIgnoringRef": "https://search.yahoo.com/yhs/search?p=mozilla+&ei=UTF-8&hspart=mozilla&hsimp=yhs-001",
-                    "hasRef": false
-                }
-            }
-            
-            and, the specIgnoringRef link takes you to an ordinary yahoo search results page. not what we wanted.
-
-            -------------------------------
-            what if the second param is null? looks like we get text/html by default.
-
-            {
-                "postData": null,
-                "uri": {
-                    "spec": "https://search.yahoo.com/yhs/search?p=mozilla+&ei=UTF-8&hspart=mozilla&hsimp=yhs-001",
-                    "prePath": "https://search.yahoo.com",
-                    "scheme": "https",
-                    "userPass": "",
-                    "username": "",
-                    "password": "",
-                    "hostPort": "search.yahoo.com",
-                    "host": "search.yahoo.com",
-                    "port": -1,
-                    "path": "/yhs/search?p=mozilla+&ei=UTF-8&hspart=mozilla&hsimp=yhs-001",
-                    "asciiSpec": "https://search.yahoo.com/yhs/search?p=mozilla+&ei=UTF-8&hspart=mozilla&hsimp=yhs-001",
-                    "asciiHost": "search.yahoo.com",
-                    "originCharset": "UTF-8",
-                    "ref": "",
-                    "specIgnoringRef": "https://search.yahoo.com/yhs/search?p=mozilla+&ei=UTF-8&hspart=mozilla&hsimp=yhs-001",
-                    "hasRef": false
-                }
-            }
-
-            ok. so what is missing is SearchSuggestionController::_fetchRemote doing this bit for us.
-            let's figure out how to use that.
-
-
-            */
-
-            // what is search term?
-            // one approach might be to use the search term returned by the autocomplete results.
-            // that ensures these results line up with those.
-            // but, for right now, let's go cheap, and just fish the string out of the url bar directly:
+            // finding the search term:
+            // one approach might be to use the search term returned along with the autocomplete results,
+            // ensuring that the search suggestions were generated by the same string as the autocomplete
+            // results. but, for right now, let's go cheap, and just fish the string out of the url bar directly.
             let searchTerm = gURLBar.inputField.value;
-            let submission = engine.getSubmission(searchTerm, null, "searchbar");
-            console.log('>>>>>>>>>>> got search engine response: ' + JSON.stringify(submission));
+
+            let controller = new SearchSuggestionController();
+            let engine = Services.search.currentEngine;
+            let ok = SearchSuggestionController.engineOffersSuggestions(engine);
+
+            controller.maxLocalResults = ok ? MAX_LOCAL_SUGGESTIONS : MAX_SUGGESTIONS;
+            controller.maxRemoteResults = ok ? MAX_SUGGESTIONS : 0;
+            controller.remoteTimeout = REMOTE_TIMEOUT;
+
+            let suggestions = yield controller.fetch(searchTerm, isPrivateBrowsingSession, engine);
             chan.send({ type: 'suggested-search-results', data: submission });
           };
           (Services.search.isInitialized) ? triggerSearch() : Services.search.init(triggerSearch);
+
+
+
+
+
+
+
+
+
+
+
 
           /* technically we don't even need this. boy we are hacking like crazy. 
           var controller = this.mInput.controller;
