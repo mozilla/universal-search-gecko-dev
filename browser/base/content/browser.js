@@ -1714,6 +1714,7 @@ function HandleAppCommandEvent(evt) {
       BrowserStop();
     break;
   case "Search":
+    // hmm, maybe this is something
     BrowserSearch.webSearch();
     break;
   case "Bookmarks":
@@ -3378,6 +3379,8 @@ const BrowserSearch = {
         let mm = gBrowser.selectedBrowser.messageManager;
         if (url === "about:home") {
           AboutHome.focusInput(mm);
+        // hmm, it looks like ContentSearch is the search experience for the new tab page,
+        // but that the regular search bar does something else...bummer
         } else if (url === "about:newtab" && NewTabUtils.allPages.enabled) {
           ContentSearch.focusInput(mm);
         } else {
