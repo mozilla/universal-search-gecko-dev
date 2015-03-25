@@ -258,6 +258,9 @@ nsAutoCompleteController::HandleText()
   return NS_OK;
 }
 
+// ok, so I think this is what actually is called by the autocomplete dropdown's onPopupClick handler.
+// once again, if the popup's index for the selected thing is zero, it looks like it bails out?
+// this is rather tricky. let's just send it the value and see what happens.
 NS_IMETHODIMP
 nsAutoCompleteController::HandleEnter(bool aIsPopupSelection, bool *_retval)
 {

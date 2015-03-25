@@ -991,7 +991,8 @@ on popupshown,
     </content>
 
     <implementation implements="nsIAutoCompletePopup">
-      <field name="_currentIndex">0</field>
+      <!-- if the currentIndex == 0, the controller code assumes the user did not click in the popup -->
+      <field name="_currentIndex">1</field>
       <field name="_rowHeight">0</field>
       <field name="browInitialized">false</field>
 
@@ -1383,9 +1384,34 @@ on popupshown,
           this.mChannel.listen(function (id, msg, sender) {
             console.log('message received by chrome: ' + JSON.stringify(msg));
             if (id != this.mChannelId) { return; }
-            // for right now, whatever the message was, bounce it right back,
-            // so we can convince ourselves this is working
-            this.mChannel.send({ data: msg }, brow);
+            // ok, we need to check the type!
+            if (msg.type == 'autocomplete-url-clicked') {
+              console.log('looks like the url got clicked, lets do this');
+              // this doesn't work, says this.view is undefined. fml.
+              //
+              // var controller = this.view.QueryInterface(Components.interfaces.nsIAutoCompleteController);
+              // controller.handleEnter(true);
+              //
+              // maybe this will work instead?
+              // this.mController.handleEnter(true);
+              //
+              // nope, this.mController is inaccessible, fall back on this noise:
+              //var controller = Components.classes["@mozilla.org/autocomplete/controller;1"].
+              //  getService(Components.interfaces.nsIAutoCompleteController);
+              //
+              // we have to unset the currentIndex from 0 so that the controller does the right thing
+              //controller.handleEnter(true);
+
+              // pausing for a second to try something different: manually close the popup and bail
+              gBrowser.loadURI(msg.url);
+              console.log('is this.closePopup defined? ' + this.closePopup);
+              console.log('how about popup? ' + typeof popup);
+              console.log('how about this.popup? ' + this.popup);
+              console.log('how about this.__proto__? ' + typeof this.__proto__);
+            } else {
+              // echo the msg right back: leftover from when I was proving to myself that this could work
+              this.mChannel.send({ data: msg }, brow);
+            }
           }.bind(this));
 
           // finally, don't reinitialize until we start unloading the iframe between popupshown and popuphidden

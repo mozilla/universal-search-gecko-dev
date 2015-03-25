@@ -828,10 +828,17 @@
           // With UnifiedComplete disabled we don't have this problem, as the
           // default is to use the value directly from the input field (without
           // relying on autocomplete).
+          //
+          // TODO: wtf is unifiedcomplete?
 
           if (!Services.prefs.getBoolPref("browser.urlbar.unifiedcomplete")) {
             return this.mController.handleEnter(false);
           }
+
+          // ugh, this is going to be unpleasant to hook into.
+          //
+          // looks like we need to manually set the popup's selectedIndex to
+          // something non-zero when we receive the click...maybe -1? ;-P
 
           // If anything other than the default (first) result is selected, then
           // it must have been manually selected by the human. We let this
