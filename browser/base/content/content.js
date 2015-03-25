@@ -565,6 +565,16 @@ addMessageListener("WebChannelMessageToContent", function (e) {
 });
 
 
+// OK, so this Mediator seems to broker messages between chrome and content.
+// the chrome search results are piped through here, and if the URI is whitelisted,
+// then we pass the results along to the search results UI to be rendered...I think.
+//
+// this Mediator
+//   - listens for 'ContentSearchClient' and 'ContentSearch' signals from chrome
+//   - sends 'ContentSearchService' signal to content
+//     - note, it looks like messages are only passed through if the URI is whitelisted
+//     - TODO, explore this some more
+// from chrome,
 let ContentSearchMediator = {
 
   whitelist: new Set([

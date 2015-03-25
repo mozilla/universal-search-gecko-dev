@@ -54,6 +54,13 @@ function SearchSuggestionUIController(inputElement, tableParent, onClick=null,
   this.input.addEventListener("input", this);
   this.input.addEventListener("focus", this);
   this.input.addEventListener("blur", this);
+
+  // here we listen for ContentSearchService signals from the ContentSearchMediator,
+  // pass the event to _onContentSearchService via some clever magic,
+  // and that handler itself uses some clever magic to invoke '_onMsg' + event name
+  // to continue handling the event.
+  //
+  // in our case, the event we care about is handled by '_onMsgSuggestions' method below.
   window.addEventListener("ContentSearchService", this);
 
   this._stickyInputValue = "";
@@ -259,6 +266,10 @@ SearchSuggestionUIController.prototype = {
     }
   },
 
+  // a little bit of annoying magic to dynamically invoke handlers based
+  // on the event type (specifically, event.detail.type).
+  // 
+  // in the case we care about, 'Suggestions' type => _onMsgSuggestions function.
   _onContentSearchService: function (event) {
     let methodName = "_onMsg" + event.detail.type;
     if (methodName in this) {
@@ -266,6 +277,13 @@ SearchSuggestionUIController.prototype = {
     }
   },
 
+  // here's the function that handles displaying suggestions.
+  // interesting points:
+  //   - see the comment about ignoring suggestions if the search string or engine
+  //     is wrong, due to async search results
+  //   - the rest of the function basically empties and refills a table with
+  //     search suggestions, then shows the table, then sets aria-expanded attribute for a11y
+  //   - our code just needs to listen for these events, I guess
   _onMsgSuggestions: function (suggestions) {
     // Ignore the suggestions if their search string or engine doesn't match
     // ours.  Due to the async nature of message passing, this can easily happen
@@ -351,6 +369,9 @@ SearchSuggestionUIController.prototype = {
     return row;
   },
 
+  // looks like this is how you ask the engine for suggestions:
+  // fire a GetSuggestions signal to chrome (_sendMsg abstracts WebChannel.jsm),
+  // specifying the engine, search string, and a timeout. noice.
   _getSuggestions: function () {
     this._stickyInputValue = this.input.value;
     if (this.engineName) {

@@ -27,6 +27,12 @@ const OUTBOUND_MESSAGE = INBOUND_MESSAGE;
 const MAX_LOCAL_SUGGESTIONS = 3;
 const MAX_SUGGESTIONS = 6;
 
+// and here's our final piece of the puzzle
+// see the comment below, but basically this class, among other things,
+// - listens for GetSuggestions events,
+// - queries the specified engine with the specified string,
+// - then emits the result as a Suggestions event
+
 /**
  * ContentSearch receives messages named INBOUND_MESSAGE and sends messages
  * named OUTBOUND_MESSAGE.  The data of each message is expected to look like
@@ -264,6 +270,8 @@ this.ContentSearch = {
     return Promise.resolve();
   },
 
+  // this function handles the GetSuggestions event, does the query,
+  // and emits the Suggestions event with results
   _onMessageGetSuggestions: Task.async(function* (msg, data) {
     this._ensureDataHasProperties(data, [
       "engineName",
