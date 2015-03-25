@@ -187,6 +187,15 @@ let AboutHome = {
           break;
         }
 
+        // I think this might be the one to copy.
+        // init the search service,
+        // check the status on init and bail if it failed,
+        // grab the currentEngine,
+        // trigger search via currentEngine.getSubmission,
+        // and pull back the results. yisssssssssssssssss
+        //
+        // this doesn't really assume we handle async responses,
+        // but for the moment, it's probably fine. let's try it.
         Services.search.init(function(status) {
           if (!Components.isSuccessCode(status)) {
             return;

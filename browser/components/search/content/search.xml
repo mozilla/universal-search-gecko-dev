@@ -176,6 +176,7 @@
 
       <property name="searchService" readonly="true">
         <getter><![CDATA[
+          // aha! here's how you get the search service directly.
           if (!this._ss) {
             const nsIBSS = Components.interfaces.nsIBrowserSearchService;
             this._ss =
@@ -531,6 +532,7 @@
         ]]></body>
       </method>
 
+      // here's the creatively named doSearch method which 
       <method name="doSearch">
         <parameter name="aData"/>
         <parameter name="aWhere"/>
@@ -549,6 +551,7 @@
               }});
           }
 
+          // other files invoke gEngine, maybe that's a simpler way?
           let engine = aEngine || this.currentEngine;
           var submission = engine.getSubmission(aData, null, "searchbar");
           let telemetrySearchDetails = this.telemetrySearchDetails;

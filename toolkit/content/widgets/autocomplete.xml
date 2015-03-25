@@ -1247,6 +1247,120 @@ on popupshown,
                                          Services.io.newURI('http://localhost', null, null));
           chan.send({ type: 'autocomplete-search-results', data: results }, brow);
 
+          //
+          // now, we also want to include the search suggestions in the output, via some separate signal.
+          // ( face-with-open-mouth-and-cold-sweat-emoji )
+          // 
+          var triggerSearch = function(status) {
+            // straight-up copying this code from browser/modules/AboutHome.jsm
+            if (!Components.isSuccessCode(status)) {
+              console.log('oh no, search init failed, status was: ' + status);
+              return;
+            }
+
+            let engine = Services.search.currentEngine;
+            // it appears that second param could be "application/x-suggestions+json" or "text/html" or null
+            // see, eg, browser/components/search/test/browser_google.js
+            /* if I set the second param to "application/x-suggestions+json", the response is:
+            {
+                "postData": null,
+                "uri": {
+                    "spec": "https://search.yahoo.com/sugg/ff?output=fxjson&appid=ffd&command=mozilla+",
+                    "prePath": "https://search.yahoo.com",
+                    "scheme": "https",
+                    "userPass": "",
+                    "username": "",
+                    "password": "",
+                    "hostPort": "search.yahoo.com",
+                    "host": "search.yahoo.com",
+                    "port": -1,
+                    "path": "/sugg/ff?output=fxjson&appid=ffd&command=mozilla+",
+                    "asciiSpec": "https://search.yahoo.com/sugg/ff?output=fxjson&appid=ffd&command=mozilla+",
+                    "asciiHost": "search.yahoo.com",
+                    "originCharset": "UTF-8",
+                    "ref": "",
+                    "specIgnoringRef": "https://search.yahoo.com/sugg/ff?output=fxjson&appid=ffd&command=mozilla+",
+                    "hasRef": false
+                }
+            }
+            
+            and, if I then surf to the search.yahoo suggestion page, I see:
+
+            [
+              "mozilla ", 
+              ["mozilla firefox", "mozilla firefox 2015 free download", "mozilla firefox free download", "mozilla firefox start page", "mozilla firefox update", "mozilla firefox free download for mac", "mozilla thunderbird", "mozilla firefox 2014 free download", "mozilla thunderbird email", "mozilla firefox browser"],
+              [],
+              []
+            ]
+
+            -------------------------------
+            if I set the second param to "text/html", the response is:
+            {
+                "postData": null,
+                "uri": {
+                    "spec": "https://search.yahoo.com/yhs/search?p=mozilla+&ei=UTF-8&hspart=mozilla&hsimp=yhs-001",
+                    "prePath": "https://search.yahoo.com",
+                    "scheme": "https",
+                    "userPass": "",
+                    "username": "",
+                    "password": "",
+                    "hostPort": "search.yahoo.com",
+                    "host": "search.yahoo.com",
+                    "port": -1,
+                    "path": "/yhs/search?p=mozilla+&ei=UTF-8&hspart=mozilla&hsimp=yhs-001",
+                    "asciiSpec": "https://search.yahoo.com/yhs/search?p=mozilla+&ei=UTF-8&hspart=mozilla&hsimp=yhs-001",
+                    "asciiHost": "search.yahoo.com",
+                    "originCharset": "UTF-8",
+                    "ref": "",
+                    "specIgnoringRef": "https://search.yahoo.com/yhs/search?p=mozilla+&ei=UTF-8&hspart=mozilla&hsimp=yhs-001",
+                    "hasRef": false
+                }
+            }
+            
+            and, the specIgnoringRef link takes you to an ordinary yahoo search results page. not what we wanted.
+
+            -------------------------------
+            what if the second param is null? looks like we get text/html by default.
+
+            {
+                "postData": null,
+                "uri": {
+                    "spec": "https://search.yahoo.com/yhs/search?p=mozilla+&ei=UTF-8&hspart=mozilla&hsimp=yhs-001",
+                    "prePath": "https://search.yahoo.com",
+                    "scheme": "https",
+                    "userPass": "",
+                    "username": "",
+                    "password": "",
+                    "hostPort": "search.yahoo.com",
+                    "host": "search.yahoo.com",
+                    "port": -1,
+                    "path": "/yhs/search?p=mozilla+&ei=UTF-8&hspart=mozilla&hsimp=yhs-001",
+                    "asciiSpec": "https://search.yahoo.com/yhs/search?p=mozilla+&ei=UTF-8&hspart=mozilla&hsimp=yhs-001",
+                    "asciiHost": "search.yahoo.com",
+                    "originCharset": "UTF-8",
+                    "ref": "",
+                    "specIgnoringRef": "https://search.yahoo.com/yhs/search?p=mozilla+&ei=UTF-8&hspart=mozilla&hsimp=yhs-001",
+                    "hasRef": false
+                }
+            }
+
+            ok. so what is missing is SearchSuggestionController::_fetchRemote doing this bit for us.
+            let's figure out how to use that.
+
+
+            */
+
+            // what is search term?
+            // one approach might be to use the search term returned by the autocomplete results.
+            // that ensures these results line up with those.
+            // but, for right now, let's go cheap, and just fish the string out of the url bar directly:
+            let searchTerm = gURLBar.inputField.value;
+            let submission = engine.getSubmission(searchTerm, null, "searchbar");
+            console.log('>>>>>>>>>>> got search engine response: ' + JSON.stringify(submission));
+            chan.send({ type: 'suggested-search-results', data: submission });
+          };
+          (Services.search.isInitialized) ? triggerSearch() : Services.search.init(triggerSearch);
+
           /* technically we don't even need this. boy we are hacking like crazy. 
           var controller = this.mInput.controller;
           var matchCount = this._matchCount;
