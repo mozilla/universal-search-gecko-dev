@@ -1262,16 +1262,15 @@ on popupshown,
           //var suggestionData = { engineName: engine.name, searchString: gURLBar.inputField.value, remoteTimeout: 5000 };
           //ContentSearch._onMessageGetSuggestions(brow.messageManager, suggestionData);
 
-          var triggerSearch = function(status) {
-            // if Services.search was already initialized, then we called this function directly with no args
-            // otherwise, the service was just initialized, and we actually do care about the status code passed in
-            if (status && !Components.isSuccessCode(status)) {
-              console.log('oh no, search init failed, status was: ' + status);
-              return;
-            }
-
-            Components.utils.import(this, "SearchSuggestionController", "resource://gre/modules/SearchSuggestionController.jsm");
-
+          // it seems like Services.search.isInitialized is always true?
+          console.log('!!!!!!!!!!!!!!!!!!!!!!!!! is Services.search defined? ' + typeof Services.search);
+          console.log('!!!!!!!!!!!!!!!!!!!!!!!!! is Services.search.isInitialized defined? ' + !!Services.search.isInitialized);
+          console.log('!!!!!!!!!!!!!!!!!!!!!!!!! is Services.search.init defined? ' + typeof Services.search.init);
+          if (!Services.search.isInitialized) {
+            console.log("zomg Services.search.isInitialized is false");
+            return;
+          }
+          Components.utils.import("resource://gre/modules/SearchSuggestionController.jsm", this);
             let MAX_LOCAL_SUGGESTIONS = 3;
             let MAX_SUGGESTIONS = 6;
             let REMOTE_TIMEOUT = 5000; // probably far too high, but idk, whatever
@@ -1283,6 +1282,8 @@ on popupshown,
             // results. but, for right now, let's go cheap, and just fish the string out of the url bar directly.
             let searchTerm = gURLBar.inputField.value;
 
+            // unfortunately, the controller wants to do some UI twiddling.
+            // and we don't have any UI to give it. so it barfs.
             let controller = new SearchSuggestionController();
             let engine = Services.search.currentEngine;
             let ok = SearchSuggestionController.engineOffersSuggestions(engine);
@@ -1291,12 +1292,11 @@ on popupshown,
             controller.maxRemoteResults = ok ? MAX_SUGGESTIONS : 0;
             controller.remoteTimeout = REMOTE_TIMEOUT;
 
+            console.log("$$$$$$$$$$$$$$$ controller is " + typeof controller);
+            // is it the yield? is that the problem?
             let suggestions = yield controller.fetch(searchTerm, isPrivateBrowsingSession, engine);
+            console.log("$$$$$$$$$$$$$$$ suggestions is " + JSON.stringify(suggestions));
             chan.send({ type: 'suggested-search-results', data: submission });
-          };
-          (Services.search.isInitialized) ? triggerSearch() : Services.search.init(triggerSearch);
-
-
 
 
 
