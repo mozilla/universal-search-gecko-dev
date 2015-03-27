@@ -420,8 +420,23 @@
       <method name="onKeyPress">
         <parameter name="aEvent"/>
         <body><![CDATA[
+          // todo: figure out what this refers to: "let child buttons of autocomplete take input"
           if (aEvent.target.localName != "textbox")
             return true; // Let child buttons of autocomplete take input
+
+          // set up the channel and toss the keypress and the contents of the input over
+          // TODO figure out how to use 'this' to avoid re-importing everything
+          var brow = document.getAnonymousElementByAttribute(this, "anonid", "infect-and-destroy");
+          if (!brow) {
+            console.log('arg, iframe not found, can\'t send over the special keypress message?!');
+          } else {
+            Components.utils.import("resource://gre/modules/WebChannel.jsm", this);
+            var channelId = "ohai";
+            var chan = new this.WebChannel(channelId,
+                                           Services.io.newURI('http://localhost', null, null));
+            chan.send({ type: 'keypress', data: { event: aEvent, urlbarContents: gURLBar.inputField.value }}, brow);
+          }
+          // ...and now back to our regularly scheduled handling
 
           //XXXpch this is so bogus...
           if (aEvent.defaultPrevented)
@@ -1294,7 +1309,7 @@ on popupshown,
           console.log("$$$$$$$$$$$$$$$ searchController is " + typeof searchCcontroller);
           function returnSuggestion(dataz) {
             console.log("$$$$$$$$$$$$$$$ suggestions is " + JSON.stringify(dataz));
-            chan.send({ type: 'suggested-search-results', data: dataz }, brow);
+            chan.send({ type: 'suggested-search-results', data: { engine: engine.name, results: dataz } }, brow);
           }
           // is it the yield? is that the problem?
           // let suggestions = yield searchController.fetch(searchTerm, isPrivateBrowsingSession, engine);
