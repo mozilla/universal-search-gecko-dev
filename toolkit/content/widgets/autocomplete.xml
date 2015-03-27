@@ -44,6 +44,7 @@
 
     <implementation implements="nsIAutoCompleteInput, nsIDOMXULMenuListElement">
       <field name="mController">null</field>
+      <field name="mFancyController">null</field>
       <field name="mSearchNames">null</field>
       <field name="mIgnoreInput">false</field>
       <field name="mEnterEvent">null</field>
@@ -59,6 +60,10 @@
       <constructor><![CDATA[
         this.mController = Components.classes["@mozilla.org/autocomplete/controller;1"].
           getService(Components.interfaces.nsIAutoCompleteController);
+
+        // let's see if sourcing the new controller works!
+        Components.utils.import("resource://gre/components/autocomplete/FancyAutoCompleteController.jsm");
+        this.mFancyController = new FancyAutoCompleteController();
 
         // TODO not working. am I inserting this in a base class? wrong spot? 
         // this.mFrame = document.getAnonymousElementByAttribute(this, "anonid", "infect-and-destroy");
@@ -604,6 +609,7 @@
         this.onInput(event);
       ]]></handler>
 
+      <!-- idea: instead of having _any_ code in XBL, let's just call into a JS file, like these handlers do: -->
       <handler event="keypress" phase="capturing"
                action="return this.onKeyPress(event);"/>
 
