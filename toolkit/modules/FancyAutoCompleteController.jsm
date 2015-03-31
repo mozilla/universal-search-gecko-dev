@@ -4,13 +4,18 @@
 
 "use strict";
 
-this.EXPORTED_SYMBOLS = ["FancyAutoCompleteController"];
-
 const { classes: Cc, interfaces: Ci, utils: Cu } = Components;
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
 
-this.FancyAutoCompleteController = function FancyAutoCompleteController() {};
 
+this.EXPORTED_SYMBOLS = ["FancyAutoCompleteController"];
+
+
+this.FancyAutoCompleteController = function FancyAutoCompleteController() {
+  var aConsoleService = Components.classes["@mozilla.org/consoleservice;1"].
+       getService(Components.interfaces.nsIConsoleService);
+  aConsoleService.logStringMessage('FancyAutoCompleteController constructor invoked');
+};
 this.FancyAutoCompleteController.prototype = {};

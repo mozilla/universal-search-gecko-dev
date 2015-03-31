@@ -62,7 +62,7 @@
           getService(Components.interfaces.nsIAutoCompleteController);
 
         // let's see if sourcing the new controller works!
-        Components.utils.import("resource://gre/components/autocomplete/FancyAutoCompleteController.jsm");
+        Components.utils.import("resource://gre/modules/FancyAutoCompleteController.jsm");
         this.mFancyController = new FancyAutoCompleteController();
 
         // TODO not working. am I inserting this in a base class? wrong spot? 
@@ -1091,7 +1091,7 @@ on popupshown,
           // always collapse the xul result list box
           this.richlistbox.collapsed = true;
 
-          console.log('_invalidate called');
+          //console.log('_invalidate called');
 
           // for now, let's just always call the result fn:
           this._appendCurrentResult();
@@ -1212,7 +1212,7 @@ on popupshown,
       <method name="_appendCurrentResult">
         <body>
           <![CDATA[
-          console.log('_appendCurrentResult called');
+          //console.log('_appendCurrentResult called');
 
           // meaning of the original XUL code:
           //
@@ -1283,11 +1283,11 @@ on popupshown,
           //ContentSearch._onMessageGetSuggestions(brow.messageManager, suggestionData);
 
           // it seems like Services.search.isInitialized is always true?
-          console.log('!!!!!!!!!!!!!!!!!!!!!!!!! is Services.search defined? ' + typeof Services.search);
-          console.log('!!!!!!!!!!!!!!!!!!!!!!!!! is Services.search.isInitialized defined? ' + !!Services.search.isInitialized);
-          console.log('!!!!!!!!!!!!!!!!!!!!!!!!! is Services.search.init defined? ' + typeof Services.search.init);
+          //console.log('!!!!!!!!!!!!!!!!!!!!!!!!! is Services.search defined? ' + typeof Services.search);
+          //console.log('!!!!!!!!!!!!!!!!!!!!!!!!! is Services.search.isInitialized defined? ' + !!Services.search.isInitialized);
+          //console.log('!!!!!!!!!!!!!!!!!!!!!!!!! is Services.search.init defined? ' + typeof Services.search.init);
           if (!Services.search.isInitialized) {
-            console.log("zomg Services.search.isInitialized is false");
+            //console.log("zomg Services.search.isInitialized is false");
             return;
           }
           Components.utils.import("resource://gre/modules/SearchSuggestionController.jsm", this);
@@ -1312,9 +1312,9 @@ on popupshown,
           searchController.maxRemoteResults = ok ? MAX_SUGGESTIONS : 0;
           searchController.remoteTimeout = REMOTE_TIMEOUT;
 
-          console.log("$$$$$$$$$$$$$$$ searchController is " + typeof searchCcontroller);
+          //console.log("$$$$$$$$$$$$$$$ searchController is " + typeof searchCcontroller);
           function returnSuggestion(dataz) {
-            console.log("$$$$$$$$$$$$$$$ suggestions is " + JSON.stringify(dataz));
+            //console.log("$$$$$$$$$$$$$$$ suggestions is " + JSON.stringify(dataz));
             chan.send({ type: 'suggested-search-results', data: { engine: engine.name, results: dataz } }, brow);
           }
           // is it the yield? is that the problem?
@@ -1429,7 +1429,7 @@ on popupshown,
     </implementation>
     <handlers>
       <handler event="popupshown"><![CDATA[
-        console.log('autocomplete popup fired "popupshown" event');
+        //console.log('autocomplete popup fired "popupshown" event');
         if (this.browInitialized) {
           return; // only need to load it once, for now
         }
@@ -1438,15 +1438,15 @@ on popupshown,
 
         // this is a messaging callback that we're extracting out to top-level to avoid hitting XBL binding bugs
         var channelListener = function(id, msg, sender) {
-          console.log('message received by chrome: ' + JSON.stringify(msg));
+          //console.log('message received by chrome: ' + JSON.stringify(msg));
           if (id != this.mChannelId) { return; }
           if (msg.type == 'autocomplete-url-clicked') {
-            console.log('looks like the url got clicked, lets do this');
+            //console.log('looks like the url got clicked, lets do this');
             // this doesn't work, says this.view is undefined. fml.
             //
 
             var controller = this.view.QueryInterface(Components.interfaces.nsIAutoCompleteController);
-            console.log('is controller defined? we got it through some elaborate means! ' + typeof controller);
+            //console.log('is controller defined? we got it through some elaborate means! ' + typeof controller);
             //
             // maybe this will work instead?
             // this.mController.handleEnter(true);
@@ -1458,10 +1458,10 @@ on popupshown,
             // we have to unset the currentIndex from 0 so that the controller does the right thing
             //controller.handleEnter(true);
 
-            console.log('is this.closePopup defined? ' + this.closePopup.toString());
-            console.log('how about this.hidePopup? ' + this.hidePopup.toString());
-            console.log('how about this.view? ' + typeof this.view);
-            console.log('how about this.mController? ' + typeof this.mController);
+            //console.log('is this.closePopup defined? ' + this.closePopup.toString());
+            //console.log('how about this.hidePopup? ' + this.hidePopup.toString());
+            //console.log('how about this.view? ' + typeof this.view);
+            //console.log('how about this.mController? ' + typeof this.mController);
             //this.closePopup();
             gBrowser.loadURI(msg.url);
             this.hidePopup();
@@ -1472,7 +1472,7 @@ on popupshown,
         };
 
         var browLoaded = function() {
-          console.log('anonymous browser element fired "load" event');
+          //console.log('anonymous browser element fired "load" event');
           brow.removeEventListener('load', browLoaded, true);
           var mm = brow.messageManager;
           mm.loadFrameScript('chrome://browser/content/content.js', true);
