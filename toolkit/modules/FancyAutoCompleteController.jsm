@@ -8,14 +8,21 @@ const { classes: Cc, interfaces: Ci, utils: Cu } = Components;
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
+Cu.import("resource://gre/modules/Log.jsm");
+
 
 
 this.EXPORTED_SYMBOLS = ["FancyAutoCompleteController"];
 
 
-this.FancyAutoCompleteController = function FancyAutoCompleteController() {
-  var aConsoleService = Components.classes["@mozilla.org/consoleservice;1"].
-       getService(Components.interfaces.nsIConsoleService);
-  aConsoleService.logStringMessage('FancyAutoCompleteController constructor invoked');
+function FancyAutoCompleteController() {};
+FancyAutoCompleteController.prototype = {
+  log: function() { 
+    return "FancyAutoCompleteController says, here's some foo";
+    /*
+    var aConsoleService = Components.classes["@mozilla.org/consoleservice;1"].
+         getService(Components.interfaces.nsIConsoleService);
+    aConsoleService.logStringMessage('FancyAutoCompleteController::log invoked');
+    */
+  }
 };
-this.FancyAutoCompleteController.prototype = {};
