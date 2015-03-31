@@ -64,7 +64,6 @@
         // let's see if sourcing the new controller works!
         Components.utils.import("resource://gre/modules/FancyAutoCompleteController.jsm");
         this.mFancyController = new FancyAutoCompleteController();
-        console.log( this.mFancyController.log() )
 
         // TODO not working. am I inserting this in a base class? wrong spot? 
         // this.mFrame = document.getAnonymousElementByAttribute(this, "anonid", "infect-and-destroy");
@@ -427,6 +426,7 @@
         <parameter name="aEvent"/>
         <body><![CDATA[
           // todo: figure out what this refers to: "let child buttons of autocomplete take input"
+          this.mFancyController.onKeyPress(aEvent);
           if (aEvent.target.localName != "textbox")
             return true; // Let child buttons of autocomplete take input
 
