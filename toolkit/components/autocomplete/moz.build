@@ -22,10 +22,6 @@ UNIFIED_SOURCES += [
     'nsAutoCompleteSimpleResult.cpp',
 ]
 
-EXTRA_JS_MODULES += [
-  'FancyAutoCompleteController.jsm'
-]
-
 FAIL_ON_WARNINGS = True
 
 FINAL_LIBRARY = 'xul'
