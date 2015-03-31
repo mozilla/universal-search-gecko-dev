@@ -16,13 +16,11 @@ this.EXPORTED_SYMBOLS = ["FancyAutoCompleteController"];
 
 
 function FancyAutoCompleteController() {};
+// TODO: XBL sends over a pointer to the iframe, can we use WebChannel from here instead
+// of from XBL?
 FancyAutoCompleteController.prototype = {
-  log: function() { 
-    return "FancyAutoCompleteController says, here's some foo";
-    /*
-    var aConsoleService = Components.classes["@mozilla.org/consoleservice;1"].
-         getService(Components.interfaces.nsIConsoleService);
-    aConsoleService.logStringMessage('FancyAutoCompleteController::log invoked');
-    */
+  // XBL sends over an event. Let's see what we see.
+  onKeyPress: function(aEvent) {
+    debugger;
   }
 };
