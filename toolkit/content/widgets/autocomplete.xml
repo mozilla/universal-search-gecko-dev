@@ -64,6 +64,7 @@
         // let's see if sourcing the new controller works!
         Components.utils.import("resource://gre/modules/FancyAutoCompleteController.jsm");
         this.mFancyController = new FancyAutoCompleteController();
+        console.log( this.mFancyController.log() )
 
         // TODO not working. am I inserting this in a base class? wrong spot? 
         // this.mFrame = document.getAnonymousElementByAttribute(this, "anonid", "infect-and-destroy");
