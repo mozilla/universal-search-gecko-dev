@@ -420,22 +420,26 @@
       <method name="onKeyPress">
         <parameter name="aEvent"/>
         <body><![CDATA[
+
           // todo: figure out what this refers to: "let child buttons of autocomplete take input"
           if (aEvent.target.localName != "textbox")
             return true; // Let child buttons of autocomplete take input
 
-          // set up the channel and toss the keypress and the contents of the input over
-          // TODO figure out how to use 'this' to avoid re-importing everything
-          var brow = gBrowser.document.getAnonymousElementByAttribute(this, "anonid", "infect-and-destroy");
-          if (!brow) {
-            console.log('arg, iframe not found, can\'t send over the special keypress message?!');
+          // 'this' is the gURLBar...which is NOT a parent of the autocomplete popup.
+          // that's why we can't simply ask for descendants with anonid == 'infect-and-destroy'.
+          // rather than mess with traversing the DOM, we'll just set the initialized WebChannel
+          // on the gBrowser object, and use it directly.
+          if (!gBrowser.yay) {
+            console.log('keypress must have happened before the iframe was initialized');
           } else {
-            Components.utils.import("resource://gre/modules/WebChannel.jsm", this);
-            var channelId = "ohai";
-            var chan = new this.WebChannel(channelId,
-                                           Services.io.newURI('http://localhost', null, null));
-            chan.send({ type: 'keypress', data: { event: aEvent, urlbarContents: gURLBar.inputField.value }}, brow);
+            gBrowser.yay.chan.send({
+              type: 'keypress', data: {
+                event: aEvent,
+                urlbarContents: gURLBar.inputField.value
+              }},
+              gBrowser.yay.brow);
           }
+
           // ...and now back to our regularly scheduled handling
 
           //XXXpch this is so bogus...
@@ -1257,6 +1261,11 @@ on popupshown,
           var chan = new this.WebChannel(channelId,
                                          Services.io.newURI('http://localhost', null, null));
           chan.send({ type: 'autocomplete-search-results', data: results }, brow);
+
+          // this is a super desperate measure: set a global pointer to the WebChannel and browser element
+          // where we want to send messages. We do this because backtracking to that browser element from
+          // the gURLBar keypress event handler has turned out to be really difficult.
+          gBrowser.yay = { chan: chan, brow: brow };
 
 
 
