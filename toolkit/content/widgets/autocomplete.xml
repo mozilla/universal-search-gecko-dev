@@ -61,10 +61,6 @@
         this.mController = Components.classes["@mozilla.org/autocomplete/controller;1"].
           getService(Components.interfaces.nsIAutoCompleteController);
 
-        // let's see if sourcing the new controller works!
-        Components.utils.import("resource://gre/modules/FancyAutoCompleteController.jsm");
-        this.mFancyController = new FancyAutoCompleteController();
-
         // TODO not working. am I inserting this in a base class? wrong spot? 
         // this.mFrame = document.getAnonymousElementByAttribute(this, "anonid", "infect-and-destroy");
 
@@ -432,7 +428,7 @@
 
           // set up the channel and toss the keypress and the contents of the input over
           // TODO figure out how to use 'this' to avoid re-importing everything
-          var brow = document.getAnonymousElementByAttribute(this, "anonid", "infect-and-destroy");
+          var brow = gBrowser.document.getAnonymousElementByAttribute(this, "anonid", "infect-and-destroy");
           if (!brow) {
             console.log('arg, iframe not found, can\'t send over the special keypress message?!');
           } else {
@@ -998,51 +994,6 @@ on popupshown,
     then set browser.src to the iframe src.
     we should have messaging working in that way.
 -->
-
-
-  <binding id="autocomplete-futuristic-popup" extends="chrome://global/content/bindings/autocomplete.xml#autocomplete-rich-result-popup">
-    <content ignorekeys="false" level="top" consumeoutsideclicks="true">
-      <!-- we dynamically set browser.src to avoid the window load event firing before our handler's attached -->
-      <!-- todo: what if we just don't have a richlistbox? will it barf? -->
-      <xul:browser anonid="infect-and-destroy" type="content" height="600" minheight="600" flex="1" />
-    </content>
-    <implementation implements="nsIAutoCompletePopup">
-      <!-- todo: replace onget methods with something in JS -->
-      <property name="selectedIndex"
-                onget="return this.richlistbox.selectedIndex;">
-      <property name="input" readonly="true"
-                onget="return this.mInput"/>
-
-      <property name="overrideValue" readonly="true"
-                onget="return null;"/>
-
-      <property name="popupOpen" readonly="true"
-                onget="return this.mPopupOpen;"/>
-      <method name="openAutocompletePopup">
-        <parameter name="aInput"/>
-        <parameter name="aElement"/>
-        <body>
-          <![CDATA[
-          // log the result, for now, just to convince ourselves it does work
-          console.log( this.mFancyController.openAutocompletePopup(aInput, aElement) );
-        ]]>
-        </body>
-      </method>
-      <method name="selectBy">
-        <parameter name="aReverse"/>
-        <parameter name="aPage"/>
-        <body>
-          <![CDATA[
-          console.log( this.mFancyController.selectBy(aReverse, aPage) );
-        ]]>
-        </body>
-      </method>
-    </implementation>
-  </binding>
-
-
-
-
 
   <binding id="autocomplete-rich-result-popup" extends="chrome://global/content/bindings/autocomplete.xml#autocomplete-base-popup">
     <resources>
