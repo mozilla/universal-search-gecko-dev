@@ -435,7 +435,7 @@
             gBrowser.yay.chan.send({
               type: 'popupclose'
             }, gBrowser.yay.brow);
-            this.hidePopup();
+            this.popup.closePopup();
           } else if (['ArrowUp', 'ArrowDown', 'PageUp', 'PageDown', 'Tab'].indexOf(aEvent.key) > -1) {
             // TODO: either duplicate or simply reuse the remaining key handling behavior below, like the bit
             // where we ignore keys that are part of a keyboard shortcut
