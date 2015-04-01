@@ -420,7 +420,6 @@
       <method name="onKeyPress">
         <parameter name="aEvent"/>
         <body><![CDATA[
-
           // todo: figure out what this refers to: "let child buttons of autocomplete take input"
           if (aEvent.target.localName != "textbox")
             return true; // Let child buttons of autocomplete take input
@@ -431,13 +430,24 @@
           // on the gBrowser object, and use it directly.
           if (!gBrowser.yay) {
             console.log('keypress must have happened before the iframe was initialized');
-          } else {
+          } else if (['ArrowLeft', 'ArrowRight', 'Escape', 'Enter'].indexOf(aEvent.key) > -1) {
+            // we need to close the popup; tell the iframe
             gBrowser.yay.chan.send({
-              type: 'keypress', data: {
-                event: aEvent,
+              type: 'popupclose'
+            }, gBrowser.yay.brow);
+            this.hidePopup(); 
+          } else {
+            // TODO: either duplicate or simply reuse the remaining key handling behavior below, like the bit
+            // where we ignore keys that are part of a keyboard shortcut
+            gBrowser.yay.chan.send({
+              type: 'keypress',
+              data: {
+                key: aEvent.key,
+                isNavigation: ( ['ArrowUp', 'ArrowDown', 'PageUp', 'PageDown', 'Tab'].indexOf(aEvent.key) > -1 ),
+                shiftKey: aEvent.shiftKey,
                 urlbarContents: gURLBar.inputField.value
-              }},
-              gBrowser.yay.brow);
+              }
+            }, gBrowser.yay.brow);
           }
 
           // ...and now back to our regularly scheduled handling
@@ -608,7 +618,6 @@
         this.onInput(event);
       ]]></handler>
 
-      <!-- idea: instead of having _any_ code in XBL, let's just call into a JS file, like these handlers do: -->
       <handler event="keypress" phase="capturing"
                action="return this.onKeyPress(event);"/>
 
@@ -862,6 +871,7 @@ extends="chrome://global/content/bindings/popup.xml#popup">
         <body>
           <![CDATA[
           console.log('autocomplete-base-popup closePopup called');
+          
           if (this.mPopupOpen) {
             this.hidePopup();
             this.removeAttribute("width");
@@ -1240,6 +1250,10 @@ on popupshown,
           var controller = this.mInput.controller;
           var maxResults = 5;
           var results = [];
+
+          // it seems like there are no results sometimes?
+
+
           for (var i = 0; i < maxResults; i++) {
             results.push({
               url: Components.classes["@mozilla.org/intl/texttosuburi;1"].
