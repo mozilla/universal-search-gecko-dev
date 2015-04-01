@@ -551,7 +551,7 @@ addEventListener("WebChannelMessageToChrome", function (e) {
 
 // Add message listener for "WebChannelMessageToContent" messages from chrome scripts
 addMessageListener("WebChannelMessageToContent", function (e) {
-  //console.log('message from chrome received: ' + JSON.stringify(e.data));
+  console.log('message from chrome received: ' + JSON.stringify(e.data));
   if (e.data) {
     content.dispatchEvent(new content.CustomEvent("WebChannelMessageToContent", {
       detail: Cu.cloneInto({
