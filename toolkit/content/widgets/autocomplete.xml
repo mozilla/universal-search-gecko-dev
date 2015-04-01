@@ -435,17 +435,15 @@
             gBrowser.yay.chan.send({
               type: 'popupclose'
             }, gBrowser.yay.brow);
-            this.hidePopup(); 
-          } else {
+            this.hidePopup();
+          } else if (['ArrowUp', 'ArrowDown', 'PageUp', 'PageDown', 'Tab'].indexOf(aEvent.key) > -1) {
             // TODO: either duplicate or simply reuse the remaining key handling behavior below, like the bit
             // where we ignore keys that are part of a keyboard shortcut
             gBrowser.yay.chan.send({
-              type: 'keypress',
+              type: 'navigational-key',
               data: {
                 key: aEvent.key,
-                isNavigation: ( ['ArrowUp', 'ArrowDown', 'PageUp', 'PageDown', 'Tab'].indexOf(aEvent.key) > -1 ),
-                shiftKey: aEvent.shiftKey,
-                urlbarContents: gURLBar.inputField.value
+                shiftKey: aEvent.shiftKey
               }
             }, gBrowser.yay.brow);
           }
