@@ -44,7 +44,6 @@
 
     <implementation implements="nsIAutoCompleteInput, nsIDOMXULMenuListElement">
       <field name="mController">null</field>
-      <field name="mFancyController">null</field>
       <field name="mSearchNames">null</field>
       <field name="mIgnoreInput">false</field>
       <field name="mEnterEvent">null</field>
@@ -422,7 +421,6 @@
         <parameter name="aEvent"/>
         <body><![CDATA[
           // todo: figure out what this refers to: "let child buttons of autocomplete take input"
-          this.mFancyController.onKeyPress(aEvent);
           if (aEvent.target.localName != "textbox")
             return true; // Let child buttons of autocomplete take input
 

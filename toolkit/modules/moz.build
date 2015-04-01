@@ -21,7 +21,6 @@ EXTRA_JS_MODULES += [
     'DeferredTask.jsm',
     'Deprecated.jsm',
     'Dict.jsm',
-    'FancyAutoCompleteController.jsm',
     'FileUtils.jsm',
     'Finder.jsm',
     'Geometry.jsm',
