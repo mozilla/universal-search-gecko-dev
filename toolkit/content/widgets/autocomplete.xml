@@ -1247,7 +1247,6 @@ on popupshown,
 
           var controller = this.mInput.controller;
           var maxResults = 5;
-          var results = [];
 
           // it seems like there are no results sometimes?
 
@@ -1265,40 +1264,28 @@ on popupshown,
             gBrowser.yay = { chan: chan, brow: brow };
           }
 
-          switch (controller.searchStatus) {
-            case Ci.nsIAutoCompleteController.STATUS_COMPLETE_MATCH:
-              results = [];
-              for (var i = 0; i < maxResults; i++) {
-                results.push({
-                  url: Components.classes["@mozilla.org/intl/texttosuburi;1"].
-                        getService(Components.interfaces.nsITextToSubURI).
-                        unEscapeURIForUI("UTF-8", controller.getValueAt(i)),
-                  // TODO: figure out how to convert the chrome:// images into data-uris to be passed to the iframe
-                  //image: this._getImageURLForResolution(window, controller.getImageAt(i), 16, 16),
-                  title: controller.getCommentAt(i),
-                  type: controller.getStyleAt(i),
-                  text: controller.searchString.replace(/^\s+/, "").replace(/\s+$/, "")
-                });
-              }
-
-              // send the results to the iframe
-              // TODO figure out how to use 'this' to avoid re-importing everything
-              gBrowser.yay.chan.send({ type: 'autocomplete-search-results', data: results }, gBrowser.yay.brow);
-              break;
-            case Ci.nsIAutoCompleteController.STATUS_COMPLETE_NO_MATCH:
-              gBrowser.yay.chan.send({ type: 'autocomplete-search-results', data: [] }, gBrowser.yay.brow);
-              break;
-            case Ci.nsIAutoCompleteController.STATUS_SEARCHING:
-            case Ci.nsIAutoCompleteController.STATUS_NONE:
-            default:
-              // do nothing, I guess
+          // TODO: seems like the controller's searchStatus is not a reliable way to decide when/what to send.
+          // instead, we'll just check the number of results and act accordingly.
+          var results = [];
+          if (controller.matchCount) {
+            results = [];
+            for (var i = 0; i < maxResults; i++) {
+              results.push({
+                url: Components.classes["@mozilla.org/intl/texttosuburi;1"].
+                      getService(Components.interfaces.nsITextToSubURI).
+                      unEscapeURIForUI("UTF-8", controller.getValueAt(i)),
+                // TODO: figure out how to convert the chrome:// images into data-uris to be passed to the iframe
+                //image: this._getImageURLForResolution(window, controller.getImageAt(i), 16, 16),
+                title: controller.getCommentAt(i),
+                type: controller.getStyleAt(i),
+                text: controller.searchString.replace(/^\s+/, "").replace(/\s+$/, "")
+              });
+            }
           }
 
-
-
-
-
-
+          // send the results to the iframe
+          // TODO figure out how to use 'this' to avoid re-importing everything
+          gBrowser.yay.chan.send({ type: 'autocomplete-search-results', data: results }, gBrowser.yay.brow);
 
           //
           // now, we also want to include the search suggestions in the output, via some separate signal.
@@ -1346,7 +1333,7 @@ on popupshown,
           //console.log("$$$$$$$$$$$$$$$ searchController is " + typeof searchCcontroller);
           function returnSuggestion(dataz) {
             //console.log("$$$$$$$$$$$$$$$ suggestions is " + JSON.stringify(dataz));
-            chan.send({ type: 'suggested-search-results', data: { engine: engine.name, results: dataz } }, brow);
+            gBrowser.yay.chan.send({ type: 'suggested-search-results', data: { engine: engine.name, results: dataz } }, gBrowser.yay.brow);
           }
           // is it the yield? is that the problem?
           // let suggestions = yield searchController.fetch(searchTerm, isPrivateBrowsingSession, engine);
