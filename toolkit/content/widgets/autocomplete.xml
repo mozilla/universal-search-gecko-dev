@@ -1269,7 +1269,7 @@ on popupshown,
           var results = [];
           if (controller.matchCount) {
             results = [];
-            for (var i = 0; i < maxResults; i++) {
+            for (var i = 0; i < Math.min(maxResults, controller.matchCount); i++) {
               results.push({
                 url: Components.classes["@mozilla.org/intl/texttosuburi;1"].
                       getService(Components.interfaces.nsITextToSubURI).
