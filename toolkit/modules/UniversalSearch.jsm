@@ -11,11 +11,17 @@ Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/Log.jsm");
 Cu.import("resource://gre/modules/WebChannel.jsm");
 
-this.EXPORTED_SYMBOLS = ["FancyAutoCompleteController", "FancyAutoCompleteInput", "FancyAutoCompletePopup"];
+this.EXPORTED_SYMBOLS = ["UniversalSearch"];
+
+var UniversalSearch = {
+  USearchAutoCompletePopup: USearchAutoCompletePopup,
+  USearchAutoCompleteInput: USearchAutoCompleteInput,
+  USearchAutoCompleteController: USearchAutoCompleteController
+};
 
 // implements nsIAutoCompletePopup
-function FancyAutoCompletePopup() {};
-FancyAutoCompletePopup.prototype = {
+var USearchAutoCompletePopup = function() {};
+USearchAutoCompletePopup.prototype = {
   input: /* nsIAutoCompleteInput */ null,
   overrideValue: '',
   selectedIndex: 0,
@@ -27,13 +33,13 @@ FancyAutoCompletePopup.prototype = {
   selectBy: function(/* boolean */ reverse, /* boolean */page) {}
 };
 
-function FancyAutoCompleteController(iframe) {
+var USearchAutoCompleteController = function(iframe) {
   // TODO: XBL sends over a pointer to the iframe, can we use WebChannel from here instead
   // of from XBL? seems like yes
   this._iframe = iframe;
 };
 
-FancyAutoCompleteController.prototype = {
+USearchAutoCompleteController.prototype = {
   // XBL sends over an event. Let's see what we see.
   onKeyPress: function(aEvent) {
     debugger;
@@ -69,8 +75,8 @@ FancyAutoCompleteController.prototype = {
 };
 
 // implements nsIAutoCompleteInput
-function fancyAutoCompleteInput() {};
-fancyAutoCompleteInput.prototype = {
+var USearchAutoCompleteInput = function() {};
+USearchAutoCompleteInput.prototype = {
   popup: null, // nsIAutoCompletePopup
   controller: null, // nsIAutoCompleteController
   popupOpen: false,
