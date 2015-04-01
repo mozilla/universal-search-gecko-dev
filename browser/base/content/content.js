@@ -287,7 +287,7 @@ addEventListener("WebChannelMessageToChrome", function (e) {
 
 // Add message listener for "WebChannelMessageToContent" messages from chrome scripts
 addMessageListener("WebChannelMessageToContent", function (e) {
-  //console.log('message from chrome received: ' + JSON.stringify(e.data));
+  console.log('message from chrome received: ' + JSON.stringify(e.data));
   if (e.data) {
     // e.objects.eventTarget will be defined if sending a response to
     // a WebChannelMessageToChrome event. An unsolicited send
