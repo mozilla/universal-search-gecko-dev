@@ -345,26 +345,15 @@
 
       <method name="openPopup">
         <body><![CDATA[
-          if (!gBrowser.yay) {
-            console.log('gBrowser.yay inaccessible to openPopup call');
-            setTimeout(function() {
-              if (!gBrowser.yay) {
-                console.log("openPopup waited a turn, gBrowser.yay still missing, giving up");
-              } else {
-                gBrowser.yay.chan.send({ type: 'popupopen', data: { width: gURLBar.scrollWidth } }, gBrowser.yay.brow);
-              }
-            }, 0);
-          } else {
-            gBrowser.yay.chan.send({ type: 'popupopen', data: { width: gURLBar.scrollWidth } }, gBrowser.yay.brow);
-          }
+          console.log('base class openPopup called');
           this.popup.openAutocompletePopup(this, this);
         ]]></body>
       </method>
 
       <method name="closePopup">
         <body><![CDATA[
-          // zomg! THIS is the guy that closes the popup
-          //this.popup.closePopup();
+          console.log('base class closePopup called');
+          this.popup.closePopup();
         ]]></body>
       </method>
 
@@ -1128,6 +1117,54 @@ on popupshown,
         }
       ]]></constructor>
 
+      <!-- ::::::::::::: popup opening ::::::::::::: -->
+
+      <method name="openPopup">
+        <body><![CDATA[
+          console.log('rich result openPopup called');
+          if (!gBrowser.yay) {
+            console.log('gBrowser.yay inaccessible to openPopup call');
+            setTimeout(function() {
+              if (!gBrowser.yay) {
+                console.log("openPopup waited a turn, gBrowser.yay still missing, giving up");
+              } else {
+                gBrowser.yay.chan.send({ type: 'popupopen', data: { width: gURLBar.scrollWidth } }, gBrowser.yay.brow);
+              }
+            }, 0);
+          } else {
+            gBrowser.yay.chan.send({ type: 'popupopen', data: { width: gURLBar.scrollWidth } }, gBrowser.yay.brow);
+          }
+          // this may be incorrect!
+          this.popup.openAutocompletePopup(this, this);
+        ]]></body>
+      </method>
+
+      <method name="closePopup">
+        <body><![CDATA[
+          // zomg! THIS is the guy that closes the popup
+          console.log('rich result closePopup called');
+
+          // basically, if the click was directed at the iframe, we need to make sure
+          // that the iframe has time to send us the clicked URL.
+          // so, don't close in that case.
+          // otherwise, yeah, close.
+
+          if (!gBrowser.yay) {
+            console.log('gBrowser.yay inaccessible to closePopup call');
+            setTimeout(function() {
+              if (!gBrowser.yay) {
+                console.log("closePopup waited a turn, gBrowser.yay still missing, giving up");
+              } else {
+                gBrowser.yay.chan.send({ type: 'popupclose' }, gBrowser.yay.brow);
+              }
+            }, 0);
+          } else {
+            gBrowser.yay.chan.send({ type: 'popupclose' }, gBrowser.yay.brow);
+          }
+          // This may be incorrect! it used to be called from the parent.
+          this.popup.closePopup();
+        ]]></body>
+      </method>
       <!-- =================== nsIAutoCompletePopup =================== -->
 
       <property name="selectedIndex"
