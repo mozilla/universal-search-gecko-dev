@@ -916,7 +916,7 @@ extends="chrome://global/content/bindings/popup.xml#popup">
           //
           // various edge cases includes, for example: type in the urlbar, then click
           // the new tab UI.
-          return;
+          //return;
 
           if (this.mPopupOpen) {
             this.hidePopup();
