@@ -430,7 +430,15 @@
           // on the gBrowser object, and use it directly.
           if (!gBrowser.yay) {
             console.log('keypress must have happened before the iframe was initialized');
-          } else if (['ArrowLeft', 'ArrowRight', 'Escape', 'Enter'].indexOf(aEvent.key) > -1) {
+          } else if (['ArrowLeft', 'ArrowRight', 'Escape', 'Enter', 'Backspace'].indexOf(aEvent.key) > -1) {
+            // if there was only one char in the urlbar, then the backspace will empty it out, so we should
+            // hide the popup. but if there's more than one char in there, we'll probably get some results
+            // from autocomplete searching on the substring in just a moment, so do nothing.
+            // TODO: when we reimplement the controller, actually check the location of the cursor...the backspace
+            // could do nothing if it was in front of the character. And we shoudl probably check for cursor location
+            // and listen for the Del key too. And the trim() call could also mess things up. Selections are a real PITA ;-)
+            if (aEvent.key == 'Backspace' && gURLBar.inputField.value.trim().length > 1) { return; }
+
             // we need to close the popup; tell the iframe
             gBrowser.yay.chan.send({
               type: 'popupclose'
