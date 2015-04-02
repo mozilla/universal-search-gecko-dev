@@ -430,6 +430,8 @@
           // on the gBrowser object, and use it directly.
           if (!gBrowser.yay) {
             console.log('keypress must have happened before the iframe was initialized');
+          } else if (this.disableKeyNavigation || aEvent.ctrlKey || aEvent.altKey) {
+            // could be a shortcut/hotkey thing, so do nothing
           } else if (['ArrowLeft', 'ArrowRight', 'Escape', 'Enter', 'Backspace'].indexOf(aEvent.key) > -1) {
             // if there was only one char in the urlbar, then the backspace will empty it out, so we should
             // hide the popup. but if there's more than one char in there, we'll probably get some results
