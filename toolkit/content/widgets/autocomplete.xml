@@ -454,8 +454,14 @@
           // on the gBrowser object, and use it directly.
           if (!gBrowser.yay) {
             console.log('keypress must have happened before the iframe was initialized');
-          } else if (this.disableKeyNavigation || aEvent.ctrlKey || aEvent.altKey) {
+          } else if (aEvent.ctrlKey || aEvent.altKey || aEvent.metaKey) {
             // could be a shortcut/hotkey thing, so do nothing
+            //
+            // UGH. new tab shortcut on mac is not captured. TODO fix. ugh.
+            gBrowser.yay.chan.send({
+              type: 'popupclose'
+            }, gBrowser.yay.brow);
+            this.popup.closePopup();
           } else if (['ArrowLeft', 'ArrowRight', 'Escape', 'Enter', 'Backspace'].indexOf(aEvent.key) > -1) {
             // if there was only one char in the urlbar, then the backspace will empty it out, so we should
             // hide the popup. but if there's more than one char in there, we'll probably get some results
@@ -903,7 +909,15 @@ extends="chrome://global/content/bindings/popup.xml#popup">
         <body>
           <![CDATA[
           console.log('autocomplete-base-popup closePopup called');
-          
+
+          // XXX: it seems like disabling *this* closePopup method allows the popup
+          // to close under various edge cases, but keeps it open if the user clicks
+          // inside the popup, say, on a row inside the iframe.
+          //
+          // various edge cases includes, for example: type in the urlbar, then click
+          // the new tab UI.
+          return;
+
           if (this.mPopupOpen) {
             this.hidePopup();
             this.removeAttribute("width");
@@ -1031,14 +1045,6 @@ extends="chrome://global/content/bindings/popup.xml#popup">
     </handlers>
   </binding>
 
-<!--
-on popupshown,
-  get the browser elemet by anon id,
-    set a load handler that inserts content.js,
-    then set browser.src to the iframe src.
-    we should have messaging working in that way.
--->
-
   <binding id="autocomplete-rich-result-popup" extends="chrome://global/content/bindings/autocomplete.xml#autocomplete-base-popup">
     <resources>
       <stylesheet src="chrome://global/content/autocomplete.css"/>
@@ -1060,7 +1066,6 @@ on popupshown,
       <field name="browInitialized">false</field>
       <constructor><![CDATA[
         console.log('attempting to set gBrowser.yay from the constructor...');
-        //console.log('autocomplete popup fired "popupshown" event');
         if (this.browInitialized) {
           return; // only need to load it once, for now
         }
