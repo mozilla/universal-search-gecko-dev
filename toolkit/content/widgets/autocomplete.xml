@@ -1352,7 +1352,7 @@ on popupshown,
                       getService(Components.interfaces.nsITextToSubURI).
                       unEscapeURIForUI("UTF-8", controller.getValueAt(i)),
                 // TODO: figure out how to convert the chrome:// images into data-uris to be passed to the iframe
-                //image: this._getImageURLForResolution(window, controller.getImageAt(i), 16, 16),
+                image: this._getImageURLForResolution(window, controller.getImageAt(i), 16, 16),
                 title: controller.getCommentAt(i),
                 type: controller.getStyleAt(i),
                 text: controller.searchString.replace(/^\s+/, "").replace(/\s+$/, "")
