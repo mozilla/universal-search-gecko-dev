@@ -1053,7 +1053,7 @@ extends="chrome://global/content/bindings/popup.xml#popup">
 
     <content ignorekeys="false" level="top" consumeoutsideclicks="true">
       <!-- idea: dynamically set browser.src to avoid the window load event firing before our handler's attached -->
-      <xul:browser anonid="infect-and-destroy" type="content" height="600" minheight="600" flex="1" />
+      <xul:browser anonid="infect-and-destroy" type="content" height="416" minheight="600" flex="1" />
 
       <!-- idea: we'll just set the richlistbox height to 0, so it collapses. -->
       <xul:richlistbox anonid="richlistbox" class="autocomplete-richlistbox" flex="1"/>
