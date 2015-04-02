@@ -1065,6 +1065,14 @@ extends="chrome://global/content/bindings/popup.xml#popup">
       <field name="_rowHeight">0</field>
       <field name="browInitialized">false</field>
       <constructor><![CDATA[
+        // autocomplete iframe configuration: use the pref, if it exists; else use our hacky default
+        var prefBranch = Components.classes["@mozilla.org/preferences-service;1"].
+                                    getService(Components.interfaces.nsIPrefService).
+                                    getBranch("");
+        var frameURL = prefBranch.getPrefType('services.universalSearch.frameURL') ?
+                         prefBranch.getCharPref('services.universalSearch.frameURL') : 'http://localhost/iframe.html';
+        var frameBaseURL = prefBranch.getPrefType('services.universalSearch.baseURL') ?
+                             prefBranch.getCharPref('services.universalSearch.baseURL') : 'http://localhost';
 
         // TODO: we are sort of doing the same initialization twice, because using 'this'
         // was more surprising than expected in XBL. Would be nice to either really use
@@ -1096,7 +1104,7 @@ extends="chrome://global/content/bindings/popup.xml#popup">
             // to https) to make local development simpler.
             Components.utils.import("resource://gre/modules/WebChannel.jsm", this);
             this.mChannel = new this.WebChannel(this.mChannelId,
-                                           Services.io.newURI('http://localhost', null, null));
+                                           Services.io.newURI(frameBaseURL, null, null));
             this.mChannel.listen(channelListener.bind(this));
 
             // for now, only initialize once. if we add iframe teardown to the popup hiding callback,
@@ -1106,7 +1114,7 @@ extends="chrome://global/content/bindings/popup.xml#popup">
           brow.addEventListener('load', browLoaded.bind(this), true);
 
           // 3. set browser.src to the iframe, which will trigger onload when it's done
-          brow.setAttribute("src", "http://localhost/iframe.html?cachebust=" + Date.now());
+          brow.setAttribute("src", frameURL + "?cachebust=" + Date.now());
         }
 
         // initialization bit - TODO run this as soon as the iframe loads
@@ -1115,7 +1123,7 @@ extends="chrome://global/content/bindings/popup.xml#popup">
           Components.utils.import("resource://gre/modules/WebChannel.jsm", this);
           var channelId = "ohai";
           var chan = new this.WebChannel(channelId,
-                                             Services.io.newURI('http://localhost', null, null));
+                                             Services.io.newURI(frameBaseURL, null, null));
 
           // this is a super desperate measure: set a global pointer to the WebChannel and browser element
           // where we want to send messages. We do this because backtracking to that browser element from
