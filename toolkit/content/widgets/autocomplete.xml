@@ -1072,38 +1072,13 @@ on popupshown,
           //console.log('message received by chrome: ' + JSON.stringify(msg));
           if (id != this.mChannelId) { return; }
           if (msg.type == 'autocomplete-url-clicked') {
-            //console.log('looks like the url got clicked, lets do this');
-            // this doesn't work, says this.view is undefined. fml.
-            //
-
             var controller = this.view.QueryInterface(Components.interfaces.nsIAutoCompleteController);
-            //console.log('is controller defined? we got it through some elaborate means! ' + typeof controller);
-            //
-            // maybe this will work instead?
-            // this.mController.handleEnter(true);
-            //
-            // nope, this.mController is inaccessible, fall back on this noise:
-            //var controller = Components.classes["@mozilla.org/autocomplete/controller;1"].
-            //  getService(Components.interfaces.nsIAutoCompleteController);
-            //
-            // we have to unset the currentIndex from 0 so that the controller does the right thing
-            //controller.handleEnter(true);
-
-            //console.log('is this.closePopup defined? ' + this.closePopup.toString());
-            //console.log('how about this.hidePopup? ' + this.hidePopup.toString());
-            //console.log('how about this.view? ' + typeof this.view);
-            //console.log('how about this.mController? ' + typeof this.mController);
-            //this.closePopup();
             gBrowser.loadURI(msg.url);
             this.hidePopup();
-          } else {
-            // echo the msg right back: leftover from when I was proving to myself that this could work
-            this.mChannel.send({ data: msg }, brow);
           }
         };
 
         var browLoaded = function() {
-          //console.log('anonymous browser element fired "load" event');
           brow.removeEventListener('load', browLoaded, true);
           var mm = brow.messageManager;
           mm.loadFrameScript('chrome://browser/content/content.js', true);
@@ -1363,8 +1338,6 @@ on popupshown,
           var controller = this.mInput.controller;
           var maxResults = 5;
 
-          // it seems like there are no results sometimes?
-
           // TODO: seems like the controller's searchStatus is not a reliable way to decide when/what to send.
           // instead, we'll just check the number of results and act accordingly.
           var results = [];
@@ -1402,11 +1375,7 @@ on popupshown,
           //ContentSearch._onMessageGetSuggestions(brow.messageManager, suggestionData);
 
           // it seems like Services.search.isInitialized is always true?
-          //console.log('!!!!!!!!!!!!!!!!!!!!!!!!! is Services.search defined? ' + typeof Services.search);
-          //console.log('!!!!!!!!!!!!!!!!!!!!!!!!! is Services.search.isInitialized defined? ' + !!Services.search.isInitialized);
-          //console.log('!!!!!!!!!!!!!!!!!!!!!!!!! is Services.search.init defined? ' + typeof Services.search.init);
           if (!Services.search.isInitialized) {
-            //console.log("zomg Services.search.isInitialized is false");
             return;
           }
           Components.utils.import("resource://gre/modules/SearchSuggestionController.jsm", this);
@@ -1431,13 +1400,9 @@ on popupshown,
           searchController.maxRemoteResults = ok ? MAX_SUGGESTIONS : 0;
           searchController.remoteTimeout = REMOTE_TIMEOUT;
 
-          //console.log("$$$$$$$$$$$$$$$ searchController is " + typeof searchCcontroller);
           function returnSuggestion(dataz) {
-            //console.log("$$$$$$$$$$$$$$$ suggestions is " + JSON.stringify(dataz));
             gBrowser.yay.chan.send({ type: 'suggested-search-results', data: { engine: engine.name, results: dataz } }, gBrowser.yay.brow);
           }
-          // is it the yield? is that the problem?
-          // let suggestions = yield searchController.fetch(searchTerm, isPrivateBrowsingSession, engine);
           let suggestions = searchController.fetch(searchTerm, isPrivateBrowsingSession, engine);
           suggestions.then(returnSuggestion);
 
