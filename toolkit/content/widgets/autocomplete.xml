@@ -1065,46 +1065,50 @@ extends="chrome://global/content/bindings/popup.xml#popup">
       <field name="_rowHeight">0</field>
       <field name="browInitialized">false</field>
       <constructor><![CDATA[
-        console.log('attempting to set gBrowser.yay from the constructor...');
-        if (this.browInitialized) {
-          return; // only need to load it once, for now
+
+        // TODO: we are sort of doing the same initialization twice, because using 'this'
+        // was more surprising than expected in XBL. Would be nice to either really use
+        // this.mChannel, or just get rid of it, and accept that this branch just always
+        // uses the channel and browser pointer on the gBrowser global.
+
+        if (!this.browInitialized) {
+          var brow = document.getAnonymousElementByAttribute(this, "anonid", "infect-and-destroy");
+          this.mChannelId = "ohai";
+
+          // this is a messaging callback that we're extracting out to top-level to avoid hitting XBL binding bugs
+          var channelListener = function(id, msg, sender) {
+            //console.log('message received by chrome: ' + JSON.stringify(msg));
+            if (id != this.mChannelId) { return; }
+            if (msg.type == 'autocomplete-url-clicked') {
+              var controller = this.view.QueryInterface(Components.interfaces.nsIAutoCompleteController);
+              gBrowser.loadURI(msg.url);
+              this.hidePopup();
+            }
+          };
+
+          var browLoaded = function() {
+            brow.removeEventListener('load', browLoaded, true);
+            var mm = brow.messageManager;
+            mm.loadFrameScript('chrome://browser/content/content.js', true);
+
+            // add the WebChannel service to 'this', so we can communicate with the iframe
+            // NOTE: we have hacked WebChannel to allow communication over http (as opposed
+            // to https) to make local development simpler.
+            Components.utils.import("resource://gre/modules/WebChannel.jsm", this);
+            this.mChannel = new this.WebChannel(this.mChannelId,
+                                           Services.io.newURI('http://localhost', null, null));
+            this.mChannel.listen(channelListener.bind(this));
+
+            // for now, only initialize once. if we add iframe teardown to the popup hiding callback,
+            // we'll want to reset this to false to allow re-initialization of the new frame.
+            this.browInitialized = true;
+          };
+          brow.addEventListener('load', browLoaded.bind(this), true);
+
+          // 3. set browser.src to the iframe, which will trigger onload when it's done
+          brow.setAttribute("src", "http://localhost/iframe.html?cachebust=" + Date.now());
         }
-        var brow = document.getAnonymousElementByAttribute(this, "anonid", "infect-and-destroy");
-        this.mChannelId = "ohai";
 
-        // this is a messaging callback that we're extracting out to top-level to avoid hitting XBL binding bugs
-        var channelListener = function(id, msg, sender) {
-          //console.log('message received by chrome: ' + JSON.stringify(msg));
-          if (id != this.mChannelId) { return; }
-          if (msg.type == 'autocomplete-url-clicked') {
-            var controller = this.view.QueryInterface(Components.interfaces.nsIAutoCompleteController);
-            gBrowser.loadURI(msg.url);
-            this.hidePopup();
-          }
-        };
-
-        var browLoaded = function() {
-          brow.removeEventListener('load', browLoaded, true);
-          var mm = brow.messageManager;
-          mm.loadFrameScript('chrome://browser/content/content.js', true);
-
-          // add the WebChannel service to 'this', so we can communicate with the iframe
-          // NOTE: we have hacked WebChannel to allow communication over http (as opposed
-          // to https) to make local development simpler.
-          Components.utils.import("resource://gre/modules/WebChannel.jsm", this);
-          this.mChannel = new this.WebChannel(this.mChannelId,
-                                         Services.io.newURI('http://localhost', null, null));
-          this.mChannel.listen(channelListener.bind(this)); 
-
-          // for now, only initialize once. if we add iframe teardown to the popup hiding callback,
-          // we'll want to reset this to false to allow re-initialization of the new frame.
-          this.browInitialized = true;
-        };
-        brow.addEventListener('load', browLoaded.bind(this), true);
-
-        // 3. set browser.src to the iframe, which will trigger onload when it's done
-        brow.setAttribute("src", "http://localhost/iframe.html?cachebust=" + Date.now());
-        // 4. TODO: maybe close the iframe on popuphidden?
         // initialization bit - TODO run this as soon as the iframe loads
         if (!gBrowser.yay) {
           var brow = document.getAnonymousElementByAttribute(this, "anonid", "infect-and-destroy");
