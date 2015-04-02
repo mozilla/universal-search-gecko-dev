@@ -345,6 +345,18 @@
 
       <method name="openPopup">
         <body><![CDATA[
+          if (!gBrowser.yay) {
+            console.log('gBrowser.yay inaccessible to openPopup call');
+            setTimeout(function() {
+              if (!gBrowser.yay) {
+                console.log("openPopup waited a turn, gBrowser.yay still missing, giving up");
+              } else {
+                gBrowser.yay.chan.send({ type: 'popupopen', data: { width: gURLBar.scrollWidth } }, gBrowser.yay.brow);
+              }
+            }, 0);
+          } else {
+            gBrowser.yay.chan.send({ type: 'popupopen', data: { width: gURLBar.scrollWidth } }, gBrowser.yay.brow);
+          }
           this.popup.openAutocompletePopup(this, this);
         ]]></body>
       </method>
