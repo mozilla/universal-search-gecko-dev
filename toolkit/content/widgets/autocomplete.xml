@@ -1034,6 +1034,87 @@ on popupshown,
       <field name="_currentIndex">1</field>
       <field name="_rowHeight">0</field>
       <field name="browInitialized">false</field>
+      <constructor><![CDATA[
+        console.log('attempting to set gBrowser.yay from the constructor...');
+        //console.log('autocomplete popup fired "popupshown" event');
+        if (this.browInitialized) {
+          return; // only need to load it once, for now
+        }
+        var brow = document.getAnonymousElementByAttribute(this, "anonid", "infect-and-destroy");
+        this.mChannelId = "ohai";
+
+        // this is a messaging callback that we're extracting out to top-level to avoid hitting XBL binding bugs
+        var channelListener = function(id, msg, sender) {
+          //console.log('message received by chrome: ' + JSON.stringify(msg));
+          if (id != this.mChannelId) { return; }
+          if (msg.type == 'autocomplete-url-clicked') {
+            //console.log('looks like the url got clicked, lets do this');
+            // this doesn't work, says this.view is undefined. fml.
+            //
+
+            var controller = this.view.QueryInterface(Components.interfaces.nsIAutoCompleteController);
+            //console.log('is controller defined? we got it through some elaborate means! ' + typeof controller);
+            //
+            // maybe this will work instead?
+            // this.mController.handleEnter(true);
+            //
+            // nope, this.mController is inaccessible, fall back on this noise:
+            //var controller = Components.classes["@mozilla.org/autocomplete/controller;1"].
+            //  getService(Components.interfaces.nsIAutoCompleteController);
+            //
+            // we have to unset the currentIndex from 0 so that the controller does the right thing
+            //controller.handleEnter(true);
+
+            //console.log('is this.closePopup defined? ' + this.closePopup.toString());
+            //console.log('how about this.hidePopup? ' + this.hidePopup.toString());
+            //console.log('how about this.view? ' + typeof this.view);
+            //console.log('how about this.mController? ' + typeof this.mController);
+            //this.closePopup();
+            gBrowser.loadURI(msg.url);
+            this.hidePopup();
+          } else {
+            // echo the msg right back: leftover from when I was proving to myself that this could work
+            this.mChannel.send({ data: msg }, brow);
+          }
+        };
+
+        var browLoaded = function() {
+          //console.log('anonymous browser element fired "load" event');
+          brow.removeEventListener('load', browLoaded, true);
+          var mm = brow.messageManager;
+          mm.loadFrameScript('chrome://browser/content/content.js', true);
+
+          // add the WebChannel service to 'this', so we can communicate with the iframe
+          // NOTE: we have hacked WebChannel to allow communication over http (as opposed
+          // to https) to make local development simpler.
+          Components.utils.import("resource://gre/modules/WebChannel.jsm", this);
+          this.mChannel = new this.WebChannel(this.mChannelId,
+                                         Services.io.newURI('http://localhost', null, null));
+          this.mChannel.listen(channelListener.bind(this)); 
+
+          // for now, only initialize once. if we add iframe teardown to the popup hiding callback,
+          // we'll want to reset this to false to allow re-initialization of the new frame.
+          this.browInitialized = true;
+        };
+        brow.addEventListener('load', browLoaded.bind(this), true);
+
+        // 3. set browser.src to the iframe, which will trigger onload when it's done
+        brow.setAttribute("src", "http://localhost/iframe.html?cachebust=" + Date.now());
+        // 4. TODO: maybe close the iframe on popuphidden?
+        // initialization bit - TODO run this as soon as the iframe loads
+        if (!gBrowser.yay) {
+          var brow = document.getAnonymousElementByAttribute(this, "anonid", "infect-and-destroy");
+          Components.utils.import("resource://gre/modules/WebChannel.jsm", this);
+          var channelId = "ohai";
+          var chan = new this.WebChannel(channelId,
+                                             Services.io.newURI('http://localhost', null, null));
+
+          // this is a super desperate measure: set a global pointer to the WebChannel and browser element
+          // where we want to send messages. We do this because backtracking to that browser element from
+          // the gURLBar keypress event handler has turned out to be really difficult.
+          gBrowser.yay = { chan: chan, brow: brow };
+        }
+      ]]></constructor>
 
       <!-- =================== nsIAutoCompletePopup =================== -->
 
@@ -1260,20 +1341,6 @@ on popupshown,
 
           // it seems like there are no results sometimes?
 
-          // initialization bit - TODO run this as soon as the iframe loads
-          if (!gBrowser.yay) {
-            var brow = document.getAnonymousElementByAttribute(this, "anonid", "infect-and-destroy");
-            Components.utils.import("resource://gre/modules/WebChannel.jsm", this);
-            var channelId = "ohai";
-            var chan = new this.WebChannel(channelId,
-                                               Services.io.newURI('http://localhost', null, null));
-
-            // this is a super desperate measure: set a global pointer to the WebChannel and browser element
-            // where we want to send messages. We do this because backtracking to that browser element from
-            // the gURLBar keypress event handler has turned out to be really difficult.
-            gBrowser.yay = { chan: chan, brow: brow };
-          }
-
           // TODO: seems like the controller's searchStatus is not a reliable way to decide when/what to send.
           // instead, we'll just check the number of results and act accordingly.
           var results = [];
@@ -1457,71 +1524,6 @@ on popupshown,
     </implementation>
     <handlers>
       <handler event="popupshown"><![CDATA[
-        //console.log('autocomplete popup fired "popupshown" event');
-        if (this.browInitialized) {
-          return; // only need to load it once, for now
-        }
-        var brow = document.getAnonymousElementByAttribute(this, "anonid", "infect-and-destroy");
-        this.mChannelId = "ohai";
-
-        // this is a messaging callback that we're extracting out to top-level to avoid hitting XBL binding bugs
-        var channelListener = function(id, msg, sender) {
-          //console.log('message received by chrome: ' + JSON.stringify(msg));
-          if (id != this.mChannelId) { return; }
-          if (msg.type == 'autocomplete-url-clicked') {
-            //console.log('looks like the url got clicked, lets do this');
-            // this doesn't work, says this.view is undefined. fml.
-            //
-
-            var controller = this.view.QueryInterface(Components.interfaces.nsIAutoCompleteController);
-            //console.log('is controller defined? we got it through some elaborate means! ' + typeof controller);
-            //
-            // maybe this will work instead?
-            // this.mController.handleEnter(true);
-            //
-            // nope, this.mController is inaccessible, fall back on this noise:
-            //var controller = Components.classes["@mozilla.org/autocomplete/controller;1"].
-            //  getService(Components.interfaces.nsIAutoCompleteController);
-            //
-            // we have to unset the currentIndex from 0 so that the controller does the right thing
-            //controller.handleEnter(true);
-
-            //console.log('is this.closePopup defined? ' + this.closePopup.toString());
-            //console.log('how about this.hidePopup? ' + this.hidePopup.toString());
-            //console.log('how about this.view? ' + typeof this.view);
-            //console.log('how about this.mController? ' + typeof this.mController);
-            //this.closePopup();
-            gBrowser.loadURI(msg.url);
-            this.hidePopup();
-          } else {
-            // echo the msg right back: leftover from when I was proving to myself that this could work
-            this.mChannel.send({ data: msg }, brow);
-          }
-        };
-
-        var browLoaded = function() {
-          //console.log('anonymous browser element fired "load" event');
-          brow.removeEventListener('load', browLoaded, true);
-          var mm = brow.messageManager;
-          mm.loadFrameScript('chrome://browser/content/content.js', true);
-
-          // add the WebChannel service to 'this', so we can communicate with the iframe
-          // NOTE: we have hacked WebChannel to allow communication over http (as opposed
-          // to https) to make local development simpler.
-          Components.utils.import("resource://gre/modules/WebChannel.jsm", this);
-          this.mChannel = new this.WebChannel(this.mChannelId,
-                                         Services.io.newURI('http://localhost', null, null));
-          this.mChannel.listen(channelListener.bind(this)); 
-
-          // for now, only initialize once. if we add iframe teardown to the popup hiding callback,
-          // we'll want to reset this to false to allow re-initialization of the new frame.
-          this.browInitialized = true;
-        };
-        brow.addEventListener('load', browLoaded.bind(this), true);
-
-        // 3. set browser.src to the iframe, which will trigger onload when it's done
-        brow.setAttribute("src", "http://localhost/iframe.html?cachebust=" + Date.now());
-        // 4. TODO: maybe close the iframe on popuphidden?
       ]]></handler>
 
     </handlers>
