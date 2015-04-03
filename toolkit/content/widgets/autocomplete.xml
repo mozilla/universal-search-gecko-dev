@@ -363,7 +363,9 @@
 
       <method name="closePopup">
         <body><![CDATA[
-          // zomg! THIS is the guy that closes the popup
+          // send a message to the iframe so it knows the popup is closed.
+          // TODO: does this fire always and only when the popup actually is closing?
+          // if we want to send a message, isn't it better to hook into the 
           if (!gBrowser.yay) {
             console.log('gBrowser.yay inaccessible to closePopup call');
             setTimeout(function() {
@@ -376,6 +378,7 @@
           } else {
             gBrowser.yay.chan.send({ type: 'popupclose' }, gBrowser.yay.brow);
           }
+          return;
           this.popup.closePopup();
         ]]></body>
       </method>
@@ -685,7 +688,7 @@
       <stylesheet src="chrome://global/skin/autocomplete.css"/>
     </resources>
 
-    <content ignorekeys="false" level="top" consumeoutsideclicks="true">
+    <content ignorekeys="false" level="top" consumeoutsideclicks="false">
       <xul:tree anonid="tree" class="autocomplete-tree plain" hidecolumnpicker="true" flex="1" seltype="single">
         <xul:treecols anonid="treecols">
           <xul:treecol id="treecolAutoCompleteValue" class="autocomplete-treecol" flex="1" overflow="true"/>
@@ -988,6 +991,7 @@ extends="chrome://global/content/bindings/popup.xml#popup">
 
     <handlers>
       <handler event="popupshowing"><![CDATA[
+        console.log('popupshowing event received by base popup');
         // If normalMaxRows wasn't already set by the input, then set it here
         // so that we restore the correct number when the popup is hidden.
 
@@ -1015,6 +1019,7 @@ extends="chrome://global/content/bindings/popup.xml#popup">
       ]]></handler>
 
       <handler event="popuphiding"><![CDATA[
+        console.log('popuphiding event received by base popup');
         var isListActive = true;
         if (this.selectedIndex == -1)
           isListActive = false;
@@ -1051,7 +1056,7 @@ extends="chrome://global/content/bindings/popup.xml#popup">
       <stylesheet src="chrome://global/skin/autocomplete.css"/>
     </resources>
 
-    <content ignorekeys="false" level="top" consumeoutsideclicks="true">
+    <content ignorekeys="false" level="top" consumeoutsideclicks="false">
       <!-- idea: dynamically set browser.src to avoid the window load event firing before our handler's attached -->
       <xul:browser anonid="infect-and-destroy" type="content" height="416" minheight="416" flex="1" />
 
@@ -1094,6 +1099,13 @@ extends="chrome://global/content/bindings/popup.xml#popup">
             }
           };
 
+          var onBrowserElClick = function(e) {
+            console.log('onBrowserElClick fired');
+            //e.preventDefault();
+            //e.stopImmediatePropagation;
+            //return;
+          };
+
           var browLoaded = function() {
             brow.removeEventListener('load', browLoaded, true);
             var mm = brow.messageManager;
@@ -1115,6 +1127,10 @@ extends="chrome://global/content/bindings/popup.xml#popup">
 
           // 3. set browser.src to the iframe, which will trigger onload when it's done
           brow.setAttribute("src", frameURL + "?cachebust=" + Date.now());
+
+          // 4. set a click handler on the browser element, try to prevent other click listeners
+          // from closing the popup before the iframe gets a chance to handle it
+          brow.addEventListener('click', onBrowserElClick, true);
         }
 
         // initialization bit - TODO run this as soon as the iframe loads
@@ -2192,7 +2208,6 @@ extends="chrome://global/content/bindings/popup.xml#popup">
       <handler event="mouseup">
         <![CDATA[
         // grab the event, try to prevent the popup from closing
-        return;
         //event.stopImmediatePropagation();
         //event.preventDefault();
         //return;
