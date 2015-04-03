@@ -1099,13 +1099,6 @@ extends="chrome://global/content/bindings/popup.xml#popup">
             }
           };
 
-          var onBrowserElClick = function(e) {
-            console.log('onBrowserElClick fired');
-            //e.preventDefault();
-            //e.stopImmediatePropagation;
-            //return;
-          };
-
           var browLoaded = function() {
             brow.removeEventListener('load', browLoaded, true);
             var mm = brow.messageManager;
@@ -1127,10 +1120,6 @@ extends="chrome://global/content/bindings/popup.xml#popup">
 
           // 3. set browser.src to the iframe, which will trigger onload when it's done
           brow.setAttribute("src", frameURL + "?cachebust=" + Date.now());
-
-          // 4. set a click handler on the browser element, try to prevent other click listeners
-          // from closing the popup before the iframe gets a chance to handle it
-          brow.addEventListener('click', onBrowserElClick, true);
         }
 
         // initialization bit - TODO run this as soon as the iframe loads
