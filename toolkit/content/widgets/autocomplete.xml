@@ -1425,6 +1425,7 @@ extends="chrome://global/content/bindings/popup.xml#popup">
           searchController.remoteTimeout = REMOTE_TIMEOUT;
 
           function returnSuggestion(dataz) {
+            delete dataz.formHistoryResult;
             gBrowser.yay.chan.send({ type: 'suggested-search-results', data: { engine: engine.name, results: dataz } }, gBrowser.yay.brow);
           }
           let suggestions = searchController.fetch(searchTerm, isPrivateBrowsingSession, engine);
