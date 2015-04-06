@@ -1366,12 +1366,16 @@ extends="chrome://global/content/bindings/popup.xml#popup">
           if (controller.matchCount) {
             results = [];
             for (var i = 0; i < Math.min(maxResults, controller.matchCount); i++) {
+              var chromeImgLink = this._getImageURLForResolution(window, controller.getImageAt(i), 16, 16);
+              // if we have a favicon link, it'll be of the form "moz-anno:favicon:http://link/to/favicon"
+              // else, it'll be a chrome:// link to the default favicon img
+              var imgMatches = chromeImgLink.match(/^moz-anno\:favicon\:(.*)/);
+
               results.push({
                 url: Components.classes["@mozilla.org/intl/texttosuburi;1"].
                       getService(Components.interfaces.nsITextToSubURI).
                       unEscapeURIForUI("UTF-8", controller.getValueAt(i)),
-                // TODO: figure out how to convert the chrome:// images into data-uris to be passed to the iframe
-                image: this._getImageURLForResolution(window, controller.getImageAt(i), 16, 16),
+                image: imgMatches ? imgMatches[1] : null,
                 title: controller.getCommentAt(i),
                 type: controller.getStyleAt(i),
                 text: controller.searchString.replace(/^\s+/, "").replace(/\s+$/, "")
