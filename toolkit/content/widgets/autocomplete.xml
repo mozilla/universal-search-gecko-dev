@@ -1100,9 +1100,11 @@ extends="chrome://global/content/bindings/popup.xml#popup">
                 gBrowser.loadURI(msg.data.result);
               } else {
                 // it's a search suggestion, so:
-                // grab the search service
-                // get the URL
-                // navigate to _that_
+                // grab the search service, get the URL, navigate to _that_
+                var engine = Services.search.defaultEngine;
+                var uri = engine.getSubmission(msg.data.result).uri.spec;
+                gURLBar.inputField.value = uri;
+                gBrowser.loadURI(uri);
               }
             } else if (msg.type == 'url-selected') {
               console.log('autocomplete widget received "url-selected" event');
@@ -1418,7 +1420,7 @@ extends="chrome://global/content/bindings/popup.xml#popup">
           Components.utils.import("resource://gre/modules/SearchSuggestionController.jsm", this);
           let MAX_LOCAL_SUGGESTIONS = 3;
           let MAX_SUGGESTIONS = 6;
-          let REMOTE_TIMEOUT = 5000; // probably far too high, but idk, whatever
+          let REMOTE_TIMEOUT = 500; // same timeout as in SearchSuggestionController.jsm
           let isPrivateBrowsingSession = false; // we don't care about this right now
 
           // searchTerm is the same thing as the 'text' item sent down in each result.
