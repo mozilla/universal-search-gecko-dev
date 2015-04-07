@@ -1090,14 +1090,15 @@ extends="chrome://global/content/bindings/popup.xml#popup">
 
           // this is a messaging callback that we're extracting out to top-level to avoid hitting XBL binding bugs
           var channelListener = function(id, msg, sender) {
-            //console.log('message received by chrome: ' + JSON.stringify(msg));
             if (id != this.mChannelId) { return; }
             if (msg.type == 'autocomplete-url-clicked') {
+              console.log('autocomplete widget received "autocomplete-url-clicked" event');
               var controller = this.view.QueryInterface(Components.interfaces.nsIAutoCompleteController);
-              gBrowser.loadURI(msg.url);
+              gBrowser.loadURI(msg.data.url);
               this.hidePopup();
             } else if (msg.type == 'url-selected') {
-              gURLBar.inputField.value = msg.url;
+              console.log('autocomplete widget received "url-selected" event');
+              gURLBar.inputField.value = msg.data.url;
             }
           };
 
