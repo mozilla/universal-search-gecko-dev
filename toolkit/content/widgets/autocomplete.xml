@@ -1096,6 +1096,8 @@ extends="chrome://global/content/bindings/popup.xml#popup">
               var controller = this.view.QueryInterface(Components.interfaces.nsIAutoCompleteController);
               gBrowser.loadURI(msg.url);
               this.hidePopup();
+            } else if (msg.type == 'url-selected') {
+              gURLBar.inputField.value = msg.url;
             }
           };
 
