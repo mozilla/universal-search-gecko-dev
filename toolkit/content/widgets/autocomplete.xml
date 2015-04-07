@@ -1108,7 +1108,16 @@ extends="chrome://global/content/bindings/popup.xml#popup">
               }
             } else if (msg.type == 'url-selected') {
               console.log('autocomplete widget received "url-selected" event');
-              gURLBar.inputField.value = msg.data.url;
+              if (msg.data.resultType == 'url') {
+                gURLBar.inputField.value = msg.data.result;
+              } else {
+                // what do we want to do with search sgugestions? maybe just shove 'em in there?
+                // show the search term in the address bar,
+                // but if the user hits 'enter', navigate to the search result page.
+                gURLBar.inputField.value = msg.data.result;
+                // TODO if the user hits enter in this case, swap out the text for the
+                // search engine URL?
+              }
             }
           };
 
