@@ -1093,10 +1093,17 @@ extends="chrome://global/content/bindings/popup.xml#popup">
             if (id != this.mChannelId) { return; }
             if (msg.type == 'autocomplete-url-clicked') {
               console.log('autocomplete widget received "autocomplete-url-clicked" event');
-              gURLBar.inputField.value = msg.data.url;
-              var controller = this.view.QueryInterface(Components.interfaces.nsIAutoCompleteController);
-              gBrowser.loadURI(msg.data.url);
               this.hidePopup();
+              if (msg.data.resultType == 'url') {
+                // it's navigable, go for it
+                gURLBar.inputField.value = msg.data.result;
+                gBrowser.loadURI(msg.data.result);
+              } else {
+                // it's a search suggestion, so:
+                // grab the search service
+                // get the URL
+                // navigate to _that_
+              }
             } else if (msg.type == 'url-selected') {
               console.log('autocomplete widget received "url-selected" event');
               gURLBar.inputField.value = msg.data.url;
