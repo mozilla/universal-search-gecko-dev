@@ -474,6 +474,21 @@
             // and listen for the Del key too. And the trim() call could also mess things up. Selections are a real PITA ;-)
             if (aEvent.key == 'Backspace' && gURLBar.inputField.value.trim().length > 1) { return; }
 
+            // ok, if the user selected something, we set state on gURLBar.
+            if (aEvent.key == 'Enter') {
+              if (gURLBar.search && gURLBar.search.term == gURLBar.value) {
+                // the user selected a search suggestion via keypresses, then hit enter.
+                // we know the suggestion is not stale, because it matches the current contents
+                // of the urlbar. So, navigate to the hidden search URL that corresponds to the term.
+                gBrowser.loadURI(gURLBar.search.url);
+                gURLBar.search = null;
+              } else {
+                // hmm, when we key over non-search values, hitting enter doesn't quite work.
+                // maybe just surf to whatever's in the urlbar?
+                gBrowser.loadURI(gURLBar.value);
+              }
+            }
+
             // we need to close the popup; tell the iframe
             gBrowser.yay.chan.send({
               type: 'popupclose'
@@ -1090,6 +1105,8 @@ extends="chrome://global/content/bindings/popup.xml#popup">
 
           // this is a messaging callback that we're extracting out to top-level to avoid hitting XBL binding bugs
           var channelListener = function(id, msg, sender) {
+            var engine = Services.search.defaultEngine;
+            var url;
             if (id != this.mChannelId) { return; }
             if (msg.type == 'autocomplete-url-clicked') {
               console.log('autocomplete widget received "autocomplete-url-clicked" event');
@@ -1101,22 +1118,24 @@ extends="chrome://global/content/bindings/popup.xml#popup">
               } else {
                 // it's a search suggestion, so:
                 // grab the search service, get the URL, navigate to _that_
-                var engine = Services.search.defaultEngine;
-                var uri = engine.getSubmission(msg.data.result).uri.spec;
-                gURLBar.inputField.value = uri;
-                gBrowser.loadURI(uri);
+                url = engine.getSubmission(msg.data.result).uri.spec;
+                gURLBar.inputField.value = url;
+                gBrowser.loadURI(url);
               }
             } else if (msg.type == 'url-selected') {
               console.log('autocomplete widget received "url-selected" event');
               if (msg.data.resultType == 'url') {
-                gURLBar.inputField.value = msg.data.result;
+                gURLBar.value = msg.data.result;
+                gURLBar._search = null;
               } else {
-                // what do we want to do with search sgugestions? maybe just shove 'em in there?
                 // show the search term in the address bar,
                 // but if the user hits 'enter', navigate to the search result page.
-                gURLBar.inputField.value = msg.data.result;
-                // TODO if the user hits enter in this case, swap out the text for the
-                // search engine URL?
+                // we may not always null out _search in time, so we will check if
+                // the search term in the gURLBar.value matches gURLBar._search.term
+                // before we navigate to the gURLBar._search.url.
+                gURLBar.value = msg.data.result;
+                url = engine.getSubmission(msg.data.result).uri.spec;
+                gURLBar._search = { term: msg.data.result, url: url };
               }
             }
           };
