@@ -11,3 +11,7 @@
  *
  * To make a manual change to preferences, you can visit the URL about:config
  */
+
+// temporarily adding the autocomplete iframe prefs for ease of use ^_^
+user_pref('services.universalSearch.baseURL', 'http://localhost:9000');
+user_pref('services.universalSearch.frameURL', 'http://localhost:9000/index.html');
