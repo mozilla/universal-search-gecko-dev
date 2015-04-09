@@ -1222,12 +1222,15 @@ extends="chrome://global/content/bindings/popup.xml#popup">
             // clear any previous selection, see bugs 400671 and 488357
             this.selectedIndex = -1;
 
-            var width = aElement.getBoundingClientRect().width;
-            this.setAttribute("width", width > 100 ? width : 100);
+            // set the width to viewport width
+            this.style.width = "100vw";
+
             // invalidate() depends on the width attribute
             this._invalidate();
 
-            this.openPopup(aElement, "after_start", 0, 0, false, false);
+            // attach to the nav-bar, not the urlbar, to get full viewport width
+            let navBar = document.getElementById("nav-bar");
+            this.openPopup(navBar, "after_start", 0, 0, false, false);
           }
         ]]>
         </body>
