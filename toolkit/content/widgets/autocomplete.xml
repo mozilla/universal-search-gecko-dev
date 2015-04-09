@@ -1222,13 +1222,13 @@ extends="chrome://global/content/bindings/popup.xml#popup">
             // clear any previous selection, see bugs 400671 and 488357
             this.selectedIndex = -1;
 
-            // set the width to viewport width
-            this.style.width = "100vw";
-
-            // invalidate() depends on the width attribute
+            // invalidate() depends on the width attribute (but not my hacked version)
             this._invalidate();
 
-            // attach to the nav-bar, not the urlbar, to get full viewport width
+            // we'll position the popup under the navbar, at full viewport width
+            // TODO: don't want to be taller than the browser window
+            this.style.marginTop = "0";
+            this.style.width = "100vw";
             let navBar = document.getElementById("nav-bar");
             this.openPopup(navBar, "after_start", 0, 0, false, false);
           }
