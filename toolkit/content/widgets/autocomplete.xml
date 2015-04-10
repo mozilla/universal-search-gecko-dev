@@ -1475,6 +1475,57 @@ extends="chrome://global/content/bindings/popup.xml#popup">
           let suggestions = searchController.fetch(searchTerm, isPrivateBrowsingSession, engine);
           suggestions.then(returnSuggestion);
 
+          // and now, even more stuff: let's send down the list of remote tabs
+          //
+          // loosely based on browser/base/content/sync/aboutSyncTabs.js.
+          // would be nice to find shared helpers that could be used in both places.
+
+          Components.utils.import("resource://gre/modules/PlacesUtils.jsm");
+          var _getIcon = function(iconUri) {
+            try {
+              var iconURI = Weave.Utils.makeURI(iconUri);
+              var chromeIconURI = PlacesUtils.favicons.getFaviconLinkForIcon(iconURI).spec;
+              var contentIconURI = chromeIconURI.match(/^moz-anno\:favicon\:(.*)/);
+              return contentIconURI ? contentIconURI[1] : null;
+            } catch (ex) {
+              // "Do nothing." <-- not sure why (6a68)
+            }
+            return null;
+          };
+
+          var _generateWeaveTabList = function () {
+            let engine = Weave.Service.engineManager.get("tabs");
+            let list = [];
+            let seenURLs = new Set();
+            let localURLs = engine.getOpenURLs();
+
+            for (let [guid, client] in Iterator(engine.getAllClients())) {
+              // Create the client node, but don't add it in-case we don't show any tabs
+              var clientInfo = {
+                clientName: client.clientName,
+                class: Weave.Service.clientsEngine.isMobile(client.id) ? "mobile" : "desktop",
+                tabs: [],
+              };
+              client.tabs.forEach(function({title, urlHistory, icon}) {
+                let url = urlHistory[0];
+                if (!url || localURLs.has(url) || seenURLs.has(url)) {
+                  return;
+                }
+                seenURLs.add(url);
+
+                let attrs = {
+                  title: title || url,
+                  url:   url,
+                  icon:  _getIcon(icon),
+                }
+                clientInfo.tabs.push(attrs);
+              });
+              list.push(clientInfo);
+            }
+            return list;
+          };
+          gBrowser.yay.chan.send({ type: 'remote-tabs', data: { clients: _generateWeaveTabList() } }, gBrowser.yay.brow);
+
           /* technically we don't even need this. boy we are hacking like crazy. 
           var controller = this.mInput.controller;
           var matchCount = this._matchCount;
