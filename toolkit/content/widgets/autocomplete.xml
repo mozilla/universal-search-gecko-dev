@@ -472,7 +472,175 @@
             // TODO: when we reimplement the controller, actually check the location of the cursor...the backspace
             // could do nothing if it was in front of the character. And we shoudl probably check for cursor location
             // and listen for the Del key too. And the trim() call could also mess things up. Selections are a real PITA ;-)
-            if (aEvent.key == 'Backspace' && gURLBar.inputField.value.trim().length > 1) { return; }
+            if (aEvent.key == 'Backspace' && !gURLBar.inputField.value.trim().length) {
+              // update: rather than close the popup when the urlbar is emptied out,
+              // we want to send down our special blank popup experience data instead.
+              var data = {};
+              data.frecentLinks = NewTabUtils.links.getLinks();
+              
+
+              // welp. here comes the Promise boilerplate.
+              Components.utils.import("resource://gre/modules/Promise.jsm");
+
+              // final output will be:
+              // [{ searchTerms, resultUrl }].
+              var out = [];
+              var processed;
+              var onError = function(err) {
+                console.log('onError fired', err);
+                return Promise.reject(); // TODO is this correct? or do I just return?
+              };
+
+              var getRecentSearches = function(db) {
+                // first, grab the search provider's default url, minus the query string
+                // for example, for google en-US this is "https://www.google.com/search?q=&ie=utf-8&oe=utf-8"
+                // the cheapest way: url.split('?')[0].
+                // (TODO the right way: nsIURL something-or-other...)
+                var searchPage = Services.search.defaultEngine.searchForm;
+                var searchURL = searchPage.split('?')[0];
+                // sqlite syntax: LIKE "foo%" means "starts with foo"
+                var likeSearchURL = searchURL + '%'; 
+                // ok, now grab the most recent 50 history items with that URL.
+                // we need to grab a lot of items because these searches may not have led
+                // to a result page - for instance, if the person doesn't like results and
+                // types a new query into the search bar.
+                var recentSearchesQuery = 'SELECT p.id, p.url, p.title, v.id AS visitId ' +
+                  'FROM moz_places p, moz_historyvisits v ' +
+                  'WHERE p.id = v.place_id AND url LIKE :engineURL ' +
+                  'ORDER BY last_visit_date DESC LIMIT 10;';
+                return db.execute(recentSearchesQuery, {engineURL: likeSearchURL});
+              };
+
+              var _extractSearchTerms = function(searchUrl) {
+                // input: https://www.google.com/?q=foo+bar&blah
+                // output: "foo bar"
+
+                // match on q=stuff, up to an '&' or the end of the string
+                var query = searchURL.match(/q=(.*)(&|$)/);
+
+                // regexp will return null if no match.
+                // in that case, just return whatever we started with,
+                // it's better than nothing.
+                if (!query) { return searchURL; }
+
+                // string.replace with 'g' flag gets a thumbs down from MDN, so:
+                return decodeURIComponent(query.split('+').join(' '));
+              };
+
+              // the DB returns us some kind of funky wrapped XPCOM object.
+              // but we need to actually do stuff with the rows. So, convert
+              // them into an array, and pass that down the promise chain.
+              var processRecentSearches = function(recentSearches) {
+                console.log('inside processRecentSearches');
+                recentSearches.forEach(function(r) {
+                  // let's reconstruct our stuff and filter on the url.
+                  processed.push({
+                    id: r.getResultByName('id'),
+                    url: r.getResultByName('url'),
+                    title: r.getResultByName('title'),
+                    searchTerms: _extractSearchTerms(r.getResultByName('title')),
+                    visitId: r.getResultByName('visitId')
+                  });
+                });
+                return Promise.resolve();
+              };
+
+              var getInterstitialPages = function() {
+                console.log("inside getInterstitialPages");
+                // find page visits which have our search visits as the "from_visit", i.e.,
+                // the referring page. 
+                var nextStepQuery = "SELECT p.id, p.url, p.title, v.id as visitId " +
+                  "FROM moz_places p, moz_historyvisits v " +
+                  "WHERE p.id = v.place_id AND v.from_visit IN :searches;";
+                var searches = [];
+                processed.forEach(function(item) {
+                  item.visitId && searches.push(item.visitId);
+                });
+                // TODO: do we have to convert the array to a comma-delimited string?
+                return db.execute(recentSearchesQuery, {searches: searches});
+              };
+
+              var incompletePages = [];
+              var finalResults = [];
+              var processInterstitialPages = function(rows) {
+                console.log("inside processInterstitialPages");
+                // convert the XPCOM rows to arrays
+                rows.forEach(function(p) {
+                  var converted = {
+                    id: p.getResultByName('id'),
+                    url: p.getResultByName('url'),
+                    title: p.getResultByName('title'),
+                    visitId: p.getResultByName('visitId')
+                  };
+                  if (converted.url.match(/google|yahoo/)) {
+                    incompletePages.push(converted);
+                  } else {
+                    finalResults.push(converted);
+                  }
+                });
+                // if we have some true results, append those to the out array.
+                // otherwise, we'll run the interstitial results through another round.
+                return Promise.resolve();
+              };
+
+              var getFinalResults = function() {
+                console.log("inside getResults");
+                // ok, so, basically do the same thing as getInterstitialPages.
+                // TODO: clean up, this code is awful
+                var nextStepQuery = "SELECT p.id, p.url, p.title, v.id as visitId " +
+                  "FROM moz_places p, moz_historyvisits v " +
+                  "WHERE p.id = v.place_id AND v.from_visit IN :searches;";
+                var searches = [];
+                incompletePages.forEach(function(item) {
+                  item.visitId && searches.push(item.visitId);
+                });
+                // TODO: do we have to convert the array to a comma-delimited string?
+                return db.execute(recentSearchesQuery, {searches: searches});
+              };
+
+              var getResults = function(rows) {
+                console.log("inside getResults");
+                // convert the final query XPCOM rows to arrays
+                // TODO: this is stolen straight from processInterstitialPages, argh
+                rows.forEach(function(p) {
+                  var converted = {
+                    id: p.getResultByName('id'),
+                    url: p.getResultByName('url'),
+                    title: p.getResultByName('title'),
+                    visitId: p.getResultByName('visitId')
+                  };
+                  finalResults.push(converted);
+                });
+                // append any good results to the out array
+                // and, this is it for the promise chain, we're done!
+                return Promise.resolve();
+              };
+
+              var sendResults = function() {
+                console.log("inside sendResults");
+                // TODO: we need to convert finalResults and other intermediate results
+                // into something simple the front-end can use, like { searchEngineName, searchTerm, url }.
+                // TODO: we need to create a linked list as we go along, so it's easy to
+                // construct the final thing we need at the end.
+                var out = [];
+                finalResults.forEach(function(result) {
+                  out.push({
+                    searchEngineName: Services.search.defaultEngine.name
+                  }); 
+                });
+                gBrowser.yay.chan.send({ type: 'empty-popup', data: data}, gBrowser.yay.brow);
+                return Promise.resolve();
+              };
+
+              PlacesUtils.promiseDBConnection()
+                .then(getRecentSearches, onError)
+                .then(processRecentSearches, onError)
+                .then(getInterstitialPages, onError)
+                .then(processInterstitialPages, onError)
+                .then(getFinalResults, onError)
+                .then(getResults, onError)
+                .then(sendResults, onError);
+            }
 
             // ok, if the user selected something, we set state on gURLBar.
             if (aEvent.key == 'Enter') {
