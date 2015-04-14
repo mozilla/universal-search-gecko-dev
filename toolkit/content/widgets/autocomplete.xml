@@ -363,6 +363,7 @@
 
       <method name="closePopup">
         <body><![CDATA[
+          
           // send a message to the iframe so it knows the popup is closed.
           // TODO: does this fire always and only when the popup actually is closing?
           // if we want to send a message, isn't it better to hook into the 
@@ -466,6 +467,9 @@
             }, gBrowser.yay.brow);
             this.popup.closePopup();
           } else if (['ArrowLeft', 'ArrowRight', 'Escape', 'Enter', 'Backspace'].indexOf(aEvent.key) > -1) {
+
+
+
             // if there was only one char in the urlbar, then the backspace will empty it out, so we should
             // hide the popup. but if there's more than one char in there, we'll probably get some results
             // from autocomplete searching on the substring in just a moment, so do nothing.
@@ -473,21 +477,130 @@
             // could do nothing if it was in front of the character. And we shoudl probably check for cursor location
             // and listen for the Del key too. And the trim() call could also mess things up. Selections are a real PITA ;-)
             if (aEvent.key == 'Backspace' && !gURLBar.inputField.value.trim().length) {
+              console.log('backspace key and no length left in the inputField......');
               // update: rather than close the popup when the urlbar is emptied out,
               // we want to send down our special blank popup experience data instead.
+              aEvent.preventDefault();
+              aEvent.stopImmediatePropagation();
               var data = {};
               data.frecentLinks = NewTabUtils.links.getLinks();
+              console.log('frecent links are',data.frecentLinks);
               
 
               // welp. here comes the Promise boilerplate.
               Components.utils.import("resource://gre/modules/Promise.jsm");
 
-              // final output will be:
-              // [{ searchTerms, resultUrl }].
-              var out = [];
-              var processed;
+              // here's our data structure shared among the promise keepers
+              // searchRecords = { <visitId>: { query: <visit>, isFinalResult: boolean, result: <visit> or null } }
+              // where <visitId> is the integer visitId
+              // and <visit> is a mashup of moz_places and moz_historyviews:
+              //     <visit> := { visitId, fromVisit, title, url }
+              // and isFinalResult is only true if we've gotten to a content page, not on a search provider website
+              var _data = {};
+              var searchRecords = {
+                _extractSearchTerms: function(searchURL) {
+                  // input: https://www.google.com/?q=foo+bar&blah
+                  // output: "foo bar"
+
+                  if (!searchURL) return;
+
+                  // match on q=stuff, up to an '&' or the end of the string
+                  var query = searchURL.match(/q=(.*)(&|$)/);
+
+                  // regexp will return null if no match.
+                  // in that case, just return whatever we started with,
+                  // it's better than nothing.
+                  if (!query) { return searchURL; }
+
+                  // string.replace with 'g' flag gets a thumbs down from MDN, so:
+                  return decodeURIComponent(query.split('+').join(' '));
+                },
+                addQuery: function(id, url, title, visitId) {
+                  var result = {
+                    id: id,
+                    url: url,
+                    title: title,
+                    searchTerms: title && this._extractSearchTerms(title),
+                    visitId: visitId
+                  };
+                  _data[id] = { query: result, result: null, isFinalResult: false };
+                },
+                getInitialVisitIDs: function() {
+                  var results = [];
+                  for (var item in _data) {
+                    results.push(_data[item].query.visitId);
+                  }
+                  return Promise.resolve(results);
+                },
+                getQueryByVisitId: function(visitId) {
+                  for (var item in _data) {
+                    // for our purposes, we don't care if the previous item was a query or an intermediate result page.
+                    // in either case, we will assign a new result. so return the item.
+                    if (_data[item].query.visitId === visitId || (_data[item].result && _data[item].result.visitId === visitId)) {
+                      return _data[item];
+                    }
+                  }
+                },
+                setResult: function(queryVisitId, resultId, resultUrl, resultTitle, resultVisitId) {
+                  var isResult = false;
+                  // find the item with that visit id, could be the initial query or the initial result, which we will overwrite
+                  var search = this.getQueryByVisitId(queryVisitId);
+
+                  // if that failed, try the other way
+                  //search = this.getQueryByVisitId(resultVisitId);
+                  if (!search) {
+                    return;
+                  }
+
+                  // set its result
+                  search.result = {
+                    id: resultId,
+                    url: resultUrl,
+                    title: resultTitle,
+                    visitId: resultVisitId
+                  };
+                  // stupidly assume we're done when we leave your search provider
+                  // stupidly assume we've left your search provider when the name doesn't match the url
+                  // TODO: do better about handling other cases, like you started a new search with
+                  //       a different search phrase
+                  // XXX for starters, assuming google or yahoo is your search provider
+                  var matches = {
+                    // seems like google results or interstitial pages could be any of:
+                    // google.com/url (interstitial / redirect page)
+                    // google.com/search, google.com/?, google.com/webhp?
+                    google: /google\.com\/(search|url|webhp|\?)/,
+                    yahoo: /search\.yahoo\.com/
+                  };
+                  var searchEngineName = Services.search.defaultEngine.name.toLowerCase();
+                  var searchDomainRegex = matches[searchEngineName];
+                  search.isFinalResult = !resultUrl.match(searchDomainRegex);
+                },
+                getIncompleteVisitIDs: function() {
+                  // return the query visit IDs where the current result is a search-related page, not a content page
+                  var incompleteItems = [];
+                  for (var item in _data) {
+                    if (_data[item].result && !_data[item].isFinalResult) {
+                      incompleteItems.push(_data[item].result.visitId);
+                    }
+                  }
+                  return Promise.resolve(incompleteItems);
+                },
+                getCompletedSearches: function() {
+                  var donezo = [];
+                  for (var item in _data) {
+                    if (_data[item].isFinalResult) {
+                      donezo.push(_data[item])
+                    }
+                  }
+                  return donezo;
+                }
+              };
+
+              // meanwhile, what we send to the front-end will just be:
+              // { searchEngineName, searches: [ { searchQuery, response: { url, title, favicon } }, ... ] }
+
               var onError = function(err) {
-                console.log('onError fired', err);
+                gBrowser.isDoingSomething = false;
                 return Promise.reject(); // TODO is this correct? or do I just return?
               };
 
@@ -506,140 +619,111 @@
                 // types a new query into the search bar.
                 var recentSearchesQuery = 'SELECT p.id, p.url, p.title, v.id AS visitId ' +
                   'FROM moz_places p, moz_historyvisits v ' +
-                  'WHERE p.id = v.place_id AND url LIKE :engineURL ' +
-                  'ORDER BY last_visit_date DESC LIMIT 10;';
-                return db.execute(recentSearchesQuery, {engineURL: likeSearchURL});
-              };
-
-              var _extractSearchTerms = function(searchUrl) {
-                // input: https://www.google.com/?q=foo+bar&blah
-                // output: "foo bar"
-
-                // match on q=stuff, up to an '&' or the end of the string
-                var query = searchURL.match(/q=(.*)(&|$)/);
-
-                // regexp will return null if no match.
-                // in that case, just return whatever we started with,
-                // it's better than nothing.
-                if (!query) { return searchURL; }
-
-                // string.replace with 'g' flag gets a thumbs down from MDN, so:
-                return decodeURIComponent(query.split('+').join(' '));
+                  'WHERE p.id = v.place_id AND p.url LIKE :engineURL ' +
+                  'ORDER BY v.visit_date DESC LIMIT 100;';
+                recentSearchesQuery = recentSearchesQuery.replace(":engineURL", '"' + likeSearchURL + '"');
+                return db.execute(recentSearchesQuery);
               };
 
               // the DB returns us some kind of funky wrapped XPCOM object.
               // but we need to actually do stuff with the rows. So, convert
               // them into an array, and pass that down the promise chain.
               var processRecentSearches = function(recentSearches) {
-                console.log('inside processRecentSearches');
+                var processed = [];
                 recentSearches.forEach(function(r) {
-                  // let's reconstruct our stuff and filter on the url.
-                  processed.push({
-                    id: r.getResultByName('id'),
-                    url: r.getResultByName('url'),
-                    title: r.getResultByName('title'),
-                    searchTerms: _extractSearchTerms(r.getResultByName('title')),
-                    visitId: r.getResultByName('visitId')
-                  });
+                  searchRecords.addQuery(
+                    r.getResultByName('id'),
+                    r.getResultByName('url'),
+                    r.getResultByName('title'),
+                    r.getResultByName('visitId')
+                  );
                 });
+                // TODO: do we reject if there were no results?
                 return Promise.resolve();
               };
 
-              var getInterstitialPages = function() {
-                console.log("inside getInterstitialPages");
-                // find page visits which have our search visits as the "from_visit", i.e.,
-                // the referring page. 
-                var nextStepQuery = "SELECT p.id, p.url, p.title, v.id as visitId " +
+              var getNextVisits = function(visitIDs) {
+                // if no visit IDs were passed in, then maybe we were done on the first hop
+                // and this is the second hop; just return an empty array, rather than throw
+                if (!visitIDs || !visitIDs.length) { return Promise.resolve([]); }
+
+                // find page visits which have the supplied visit IDs as referrers
+                var nextStepQuery = "SELECT p.id, p.url, p.title, v.id as visitId, v.from_visit as fromVisit " +
                   "FROM moz_places p, moz_historyvisits v " +
                   "WHERE p.id = v.place_id AND v.from_visit IN :searches;";
-                var searches = [];
-                processed.forEach(function(item) {
-                  item.visitId && searches.push(item.visitId);
+                nextStepQuery = nextStepQuery.replace(':searches', '(' + visitIDs.join(', ') + ')');
+                //TODO: do we have to manually shut down the PlacesUtils DB connections?
+                // TODO: not sure why, but I can't just pass the stringified array into the query.
+                //       I have to manually do the substitution. Why?
+                return PlacesUtils.promiseDBConnection().then(function(db) {
+                  return db.execute(nextStepQuery);
                 });
-                // TODO: do we have to convert the array to a comma-delimited string?
-                return db.execute(recentSearchesQuery, {searches: searches});
               };
 
-              var incompletePages = [];
-              var finalResults = [];
-              var processInterstitialPages = function(rows) {
-                console.log("inside processInterstitialPages");
-                // convert the XPCOM rows to arrays
+              var processResultPages = function(rows) {
                 rows.forEach(function(p) {
-                  var converted = {
-                    id: p.getResultByName('id'),
-                    url: p.getResultByName('url'),
-                    title: p.getResultByName('title'),
-                    visitId: p.getResultByName('visitId')
-                  };
-                  if (converted.url.match(/google|yahoo/)) {
-                    incompletePages.push(converted);
-                  } else {
-                    finalResults.push(converted);
-                  }
-                });
-                // if we have some true results, append those to the out array.
-                // otherwise, we'll run the interstitial results through another round.
-                return Promise.resolve();
-              };
+                  // fromVisit is how we get back to the original item
+                  // in the case of multiple hops, we overwrite the previous result
 
-              var getFinalResults = function() {
-                console.log("inside getResults");
-                // ok, so, basically do the same thing as getInterstitialPages.
-                // TODO: clean up, this code is awful
-                var nextStepQuery = "SELECT p.id, p.url, p.title, v.id as visitId " +
-                  "FROM moz_places p, moz_historyvisits v " +
-                  "WHERE p.id = v.place_id AND v.from_visit IN :searches;";
-                var searches = [];
-                incompletePages.forEach(function(item) {
-                  item.visitId && searches.push(item.visitId);
+                  // actually, the above seems to be wrong! I think I swapped it!
+                  searchRecords.setResult(
+                    p.getResultByName('fromVisit'),
+                    p.getResultByName('id'),
+                    p.getResultByName('url'),
+                    p.getResultByName('title'),
+                    p.getResultByName('visitId')
+                  );
                 });
-                // TODO: do we have to convert the array to a comma-delimited string?
-                return db.execute(recentSearchesQuery, {searches: searches});
-              };
-
-              var getResults = function(rows) {
-                console.log("inside getResults");
-                // convert the final query XPCOM rows to arrays
-                // TODO: this is stolen straight from processInterstitialPages, argh
-                rows.forEach(function(p) {
-                  var converted = {
-                    id: p.getResultByName('id'),
-                    url: p.getResultByName('url'),
-                    title: p.getResultByName('title'),
-                    visitId: p.getResultByName('visitId')
-                  };
-                  finalResults.push(converted);
-                });
-                // append any good results to the out array
-                // and, this is it for the promise chain, we're done!
                 return Promise.resolve();
               };
 
               var sendResults = function() {
-                console.log("inside sendResults");
-                // TODO: we need to convert finalResults and other intermediate results
-                // into something simple the front-end can use, like { searchEngineName, searchTerm, url }.
-                // TODO: we need to create a linked list as we go along, so it's easy to
-                // construct the final thing we need at the end.
+                gBrowser.isDoingSomething = false;
+
                 var out = [];
-                finalResults.forEach(function(result) {
+                searchRecords.getCompletedSearches().forEach(function(s) {
                   out.push({
-                    searchEngineName: Services.search.defaultEngine.name
+                    searchTerms: s.query.searchTerms,
+                    result: s.result
                   }); 
                 });
+                // data was defined way up at the top, with frecent links
+                data.searches = {
+                  searchEngineName: Services.search.defaultEngine.name,
+                  results: out
+                };
                 gBrowser.yay.chan.send({ type: 'empty-popup', data: data}, gBrowser.yay.brow);
                 return Promise.resolve();
               };
 
+              // first, get a list of recent searches.
+              // then, for each search, look at the next hop in the visits DB.
+              // if that next hop URL doesn't match the search engine URL, we're done.
+              // for the remainder, we try a second hop.
+              // give up after 2 hops, for now.
+              // finally, send over the subset of the data that the front-end can use.
+
+              // get some recent searches, look 2 hops down the referrer chain
+              // via the Places DB from_visit pointer, and send down the searches
+              // where a non-search page was reached by the second hop
+              if (gBrowser.isDoingSomething) {
+                console.log('not triggering the DB thingy');
+              } else {
+                gBrowser.isDoingSomething = true;
+                console.log('triggering the whole DB lookup thingy');
+
               PlacesUtils.promiseDBConnection()
                 .then(getRecentSearches, onError)
                 .then(processRecentSearches, onError)
-                .then(getInterstitialPages, onError)
-                .then(processInterstitialPages, onError)
-                .then(getFinalResults, onError)
-                .then(getResults, onError)
+                .then(searchRecords.getInitialVisitIDs, onError) // returns a Promise-wrapped list of search visit IDs
+                .then(getNextVisits, onError)
+                .then(processResultPages, onError)
+                .then(searchRecords.getIncompleteVisitIDs, onError) // returns a Promise-wrapped list of unfinished searches
+                .then(getNextVisits, onError)
+                .then(processResultPages, onError)
                 .then(sendResults, onError);
+
+              }
             }
 
             // ok, if the user selected something, we set state on gURLBar.
@@ -658,6 +742,7 @@
             }
 
             // we need to close the popup; tell the iframe
+            console.log('about to temporarily not close the popup from inside my chunk of the code');
             gBrowser.yay.chan.send({
               type: 'popupclose'
             }, gBrowser.yay.brow);
@@ -1693,6 +1778,33 @@ extends="chrome://global/content/bindings/popup.xml#popup">
             return list;
           };
           gBrowser.yay.chan.send({ type: 'remote-tabs', data: { clients: _generateWeaveTabList() } }, gBrowser.yay.brow);
+
+
+
+
+
+
+
+
+
+
+
+
+// this is all the stuff we want to send when the popup is empty,
+// but let's see if the data really works before we mess iwth the popup show/hide behavior
+
+
+
+
+
+
+
+
+
+
+
+
+
 
           /* technically we don't even need this. boy we are hacking like crazy. 
           var controller = this.mInput.controller;
