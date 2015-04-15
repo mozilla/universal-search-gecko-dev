@@ -156,6 +156,7 @@ file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
           if (action) {
             switch (action.type) {
+              // TODO: is this the switchtab handler that never closes the popup?!?!
               case "switchtab": // Fall through.
               case "visiturl": {
                 returnValue = action.params.url;
@@ -844,9 +845,6 @@ file, You can obtain one at http://mozilla.org/MPL/2.0/.
           // With UnifiedComplete disabled we don't have this problem, as the
           // default is to use the value directly from the input field (without
           // relying on autocomplete).
-          //
-          // TODO: wtf is unifiedcomplete?
-
           if (!Services.prefs.getBoolPref("browser.urlbar.unifiedcomplete")) {
             return this.mController.handleEnter(false);
           }
@@ -932,6 +930,10 @@ file, You can obtain one at http://mozilla.org/MPL/2.0/.
       ]]></handler>
 
       <handler event="focus" phase="capturing"><![CDATA[
+        // TODO: I think this is where we want to fire the event causing the
+        // autocomplete popup to open...or maybe we just tell it to open directly?
+        // since this is a prototype, the sloppy tight binding might be fine
+        console.log('urlbar got focus, should we open the popup now?');
         this._hideURLTooltip();
         this._clearFormatting();
       ]]></handler>
