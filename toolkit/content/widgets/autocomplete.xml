@@ -682,9 +682,12 @@
 
                 var out = [];
                 searchRecords.getCompletedSearches().forEach(function(s) {
+                  var result = s.result;
+                  delete result.visitId;
+                  delete result.id;
                   out.push({
                     searchTerms: s.query.searchTerms,
-                    result: s.result
+                    result: result
                   }); 
                 });
                 // data was defined way up at the top, with frecent links
