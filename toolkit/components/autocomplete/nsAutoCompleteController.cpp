@@ -253,6 +253,12 @@ nsAutoCompleteController::HandleText()
     bool cancel;
     HandleKeyNavigation(nsIDOMKeyEvent::DOM_VK_DOWN, &cancel);
     return NS_OK;
+
+    // actually, we're calling HandleText from gURLBar as a way to force the popup open.
+    // so just open the popup.
+    OpenPopup();
+
+
     // }
     // ClosePopup();
     //return NS_OK;

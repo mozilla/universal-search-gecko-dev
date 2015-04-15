@@ -158,6 +158,7 @@ file, You can obtain one at http://mozilla.org/MPL/2.0/.
             switch (action.type) {
               // TODO: is this the switchtab handler that never closes the popup?!?!
               case "switchtab": // Fall through.
+                console.log('switchtab caught by urlbar, we could be closing the autocomplete popup right now');
               case "visiturl": {
                 returnValue = action.params.url;
                 break;
@@ -302,6 +303,8 @@ file, You can obtain one at http://mozilla.org/MPL/2.0/.
           let matchLastLocationChange = true;
           if (action) {
             if (action.type == "switchtab") {
+              // or maybe this is the switchtab handler where we should close the popup
+              console.log('another spot where switchtab seems to get handled...');
               url = action.params.url;
               if (this.hasAttribute("actiontype")) {
                 this.handleRevert();
@@ -930,10 +933,10 @@ file, You can obtain one at http://mozilla.org/MPL/2.0/.
       ]]></handler>
 
       <handler event="focus" phase="capturing"><![CDATA[
-        // TODO: I think this is where we want to fire the event causing the
-        // autocomplete popup to open...or maybe we just tell it to open directly?
-        // since this is a prototype, the sloppy tight binding might be fine
-        console.log('urlbar got focus, should we open the popup now?');
+        // TODO: if you're in a brand new tab, don't open the popup
+        if (!this.popupOpen) {
+          this.popupOpen = true;
+        }
         this._hideURLTooltip();
         this._clearFormatting();
       ]]></handler>
