@@ -651,7 +651,8 @@ nsAutoCompleteController::HandleDelete(bool *_retval)
     uint32_t minResults;
     input->GetMinResultsForPopup(&minResults);
     if (minResults) {
-      ClosePopup();
+      // XXX actually, let's not!
+      //ClosePopup();
     }
   }
 
