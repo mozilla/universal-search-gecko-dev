@@ -91,6 +91,7 @@ NS_IMETHODIMP
 nsAutoCompleteController::SetInput(nsIAutoCompleteInput *aInput)
 {
   // Don't do anything if the input isn't changing.
+  // TODO: true if we want the popup to stay open?
   if (mInput == aInput)
     return NS_OK;
 
@@ -240,17 +241,21 @@ nsAutoCompleteController::HandleText()
 
   mSearchString = newValue;
 
+  // TODO: this comment is still true: if the popup's empty, we'll show some content
+  //       unrelated to search.
   // Don't search if the value is empty
   if (newValue.Length() == 0) {
     // If autocomplete popup was closed by compositionstart event handler,
     // we should reopen it forcibly even if the value is empty.
-    if (popupClosedByCompositionStart && handlingCompositionCommit) {
-      bool cancel;
-      HandleKeyNavigation(nsIDOMKeyEvent::DOM_VK_DOWN, &cancel);
-      return NS_OK;
-    }
-    ClosePopup();
+    // TODO: I think I'll need to modify this logic to *always* avoid the popup auto-closing
+    //       when the value is empty...but need to find the compositionstart event handler
+    // if (popupClosedByCompositionStart && handlingCompositionCommit) {
+    bool cancel;
+    HandleKeyNavigation(nsIDOMKeyEvent::DOM_VK_DOWN, &cancel);
     return NS_OK;
+    // }
+    // ClosePopup();
+    //return NS_OK;
   }
 
   StartSearches();
@@ -290,6 +295,7 @@ nsAutoCompleteController::HandleEnter(bool aIsPopupSelection, bool *_retval)
   return NS_OK;
 }
 
+// I think we should still close the popup when the user hits Escape
 NS_IMETHODIMP
 nsAutoCompleteController::HandleEscape(bool *_retval)
 {
@@ -334,6 +340,11 @@ nsAutoCompleteController::HandleStartComposition()
   bool isOpen = false;
   input->GetPopupOpen(&isOpen);
   if (isOpen) {
+    // TODO: when exactly do we want to close the popup?
+    //       note also, HandleText sometimes cancels this close request.
+    //       Currently unclear if it's better to mess with the circumstances
+    //       under which this file is called by the XBL handler, or whether
+    //       it actually is better to deal with the muck of C++.
     ClosePopup();
 
     bool stillOpen = false;

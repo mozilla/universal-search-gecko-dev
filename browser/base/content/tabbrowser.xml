@@ -1255,7 +1255,8 @@
         // if the tab is a blank one.
         if (newBrowser._urlbarFocused && gURLBar) {
           // Explicitly close the popup if the URL bar retains focus
-          gURLBar.closePopup();
+          /// XXX actually, do not close the popup.
+          /// gURLBar.closePopup();
 
           if (!window.fullScreen) {
             gURLBar.focus();
