@@ -480,8 +480,11 @@
               console.log('backspace key and no length left in the inputField......');
               // update: rather than close the popup when the urlbar is emptied out,
               // we want to send down our special blank popup experience data instead.
-              aEvent.preventDefault();
-              aEvent.stopImmediatePropagation();
+
+              // TODO: don't do this, because it prevents backspace key from actually
+              // being applied to, for example, a number of spaces in the urlbar.
+              //aEvent.preventDefault();
+              //aEvent.stopImmediatePropagation();
               
               // source the empty popup stuff
               // send it down
