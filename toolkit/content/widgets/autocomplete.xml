@@ -1140,6 +1140,21 @@ extends="chrome://global/content/bindings/popup.xml#popup">
         var frameBaseURL = prefBranch.getPrefType('services.universalSearch.baseURL') ?
                              prefBranch.getCharPref('services.universalSearch.baseURL') : 'http://localhost';
 
+        // manually hiding the popup when the active tab changes, or a new tab is
+        // opened. it has proved especially difficult to detect the keyboard shortcuts
+        // for opening a new tab, or switching between tabs.
+        function onTabSelected(evt) {
+          console.log('TabSelect event handled, hiding the popup');
+          this.hidePopup();
+        }
+        function onTabOpened(evt) {
+          console.log('TabOpen event handled, hiding the popup');
+          this.hidePopup();
+        }
+        gBrowser.tabContainer.addEventListener("TabSelect", onTabSelected.bind(this))
+        gBrowser.tabContainer.addEventListener("TabOpen", onTabOpened.bind(this))
+
+
         // TODO: we are sort of doing the same initialization twice, because using 'this'
         // was more surprising than expected in XBL. Would be nice to either really use
         // this.mChannel, or just get rid of it, and accept that this branch just always
