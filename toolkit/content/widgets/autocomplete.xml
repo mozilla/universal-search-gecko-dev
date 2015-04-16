@@ -345,40 +345,12 @@
 
       <method name="openPopup">
         <body><![CDATA[
-          if (!gBrowser.yay) {
-            console.log('gBrowser.yay inaccessible to openPopup call');
-            setTimeout(function() {
-              if (!gBrowser.yay) {
-                console.log("openPopup waited a turn, gBrowser.yay still missing, giving up");
-              } else {
-                gBrowser.yay.chan.send({ type: 'popupopen', data: { width: gURLBar.scrollWidth } }, gBrowser.yay.brow);
-              }
-            }, 0);
-          } else {
-            gBrowser.yay.chan.send({ type: 'popupopen', data: { width: gURLBar.scrollWidth } }, gBrowser.yay.brow);
-          }
           this.popup.openAutocompletePopup(this, this);
         ]]></body>
       </method>
 
       <method name="closePopup">
         <body><![CDATA[
-          
-          // send a message to the iframe so it knows the popup is closed.
-          // TODO: does this fire always and only when the popup actually is closing?
-          // if we want to send a message, isn't it better to hook into the 
-          if (!gBrowser.yay) {
-            console.log('gBrowser.yay inaccessible to closePopup call');
-            setTimeout(function() {
-              if (!gBrowser.yay) {
-                console.log("closePopup waited a turn, gBrowser.yay still missing, giving up");
-              } else {
-                gBrowser.yay.chan.send({ type: 'popupclose' }, gBrowser.yay.brow);
-              }
-            }, 0);
-          } else {
-            gBrowser.yay.chan.send({ type: 'popupclose' }, gBrowser.yay.brow);
-          }
           return;
           this.popup.closePopup();
         ]]></body>
@@ -459,12 +431,6 @@
           if (!gBrowser.yay) {
             console.log('keypress must have happened before the iframe was initialized');
           } else if (aEvent.ctrlKey || aEvent.altKey || aEvent.metaKey) {
-            // could be a shortcut/hotkey thing, so do nothing
-            //
-            // UGH. new tab shortcut on mac is not captured. TODO fix. ugh.
-            gBrowser.yay.chan.send({
-              type: 'popupclose'
-            }, gBrowser.yay.brow);
             this.popup.closePopup();
           } else if (['ArrowLeft', 'ArrowRight', 'Escape', 'Enter', 'Backspace'].indexOf(aEvent.key) > -1) {
 
@@ -486,7 +452,6 @@
                 this.popup.closePopup();
                 return;
               }
-
               
               // source the empty popup stuff
               // send it down
@@ -515,6 +480,7 @@
                     results: out
                   }
                 };
+                console.log('sending empty-popup from key handler');
                 gBrowser.yay.chan.send({ type: 'empty-popup', data: data}, gBrowser.yay.brow);
               };
               AutocompletePopupUtils.getRecentSearches()
@@ -1184,6 +1150,7 @@ extends="chrome://global/content/bindings/popup.xml#popup">
                 results: out
               }
             };
+            console.log('sending empty-popup from urlbar focus handler');
             gBrowser.yay.chan.send({ type: 'empty-popup', data: data}, gBrowser.yay.brow);
           };
           AutocompletePopupUtils.getRecentSearches()
@@ -1732,7 +1699,15 @@ extends="chrome://global/content/bindings/popup.xml#popup">
 
     </implementation>
     <handlers>
-      <handler event="popupshown"><![CDATA[
+      <handler event="popupshowing"><![CDATA[
+        if (gBrowser.yay) {
+          gBrowser.yay.chan.send({ type: 'popupopen' }, gBrowser.yay.brow);
+        }
+      ]]></handler>
+      <handler event="popuphiding"><![CDATA[
+        if (gBrowser.yay) {
+          gBrowser.yay.chan.send({ type: 'popupclose' }, gBrowser.yay.brow);
+        }
       ]]></handler>
 
     </handlers>
