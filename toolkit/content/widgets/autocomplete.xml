@@ -1493,36 +1493,6 @@ extends="chrome://global/content/bindings/popup.xml#popup">
           // TODO figure out how to use 'this' to avoid re-importing everything
           gBrowser.yay.chan.send({ type: 'autocomplete-search-results', data: results }, gBrowser.yay.brow);
 
-              Components.utils.import("resource://gre/modules/AutocompletePopupUtils.jsm");
-              Components.utils.import("resource://gre/modules/NewTabUtils.jsm");
-              var onError = function(err) {
-                console.log('failed to fetch empty-popup search data');
-                // TODO: should we bother sending down the frecency data anyway?
-                //       ...when would this even fail, though?
-              };
-              var sendResults = function(searches) {
-                var out = [];
-                searches.forEach(function(s) {
-                  var result = s.result;
-                  delete result.visitId;
-                  delete result.id;
-                  out.push({
-                    searchTerms: s.query.searchTerms.replace(' - Google Search', '').replace(' - Yahoo Search Results', ''),
-                    result: result
-                  }); 
-                });
-                var data = {
-                  frecentLinks: NewTabUtils.links.getLinks().splice(0,10),
-                  searches: {
-                    searchEngineName: Services.search.defaultEngine.name,
-                    results: out.splice(0,5)
-                  }
-                };
-                gBrowser.yay.chan.send({ type: 'empty-popup', data: data}, gBrowser.yay.brow);
-              };
-              AutocompletePopupUtils.getRecentSearches()
-                .then(sendResults, onError);
-
           //
           // now, we also want to include the search suggestions in the output, via some separate signal.
           // a lot of this code lifted from browser/modules/AboutHome.jsm and browser/modules/ContentSearch.jsm
