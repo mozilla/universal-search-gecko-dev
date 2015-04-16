@@ -479,12 +479,14 @@
             if (aEvent.key == 'Backspace' && !gURLBar.inputField.value.trim().length) {
               console.log('backspace key and no length left in the inputField......');
               // update: rather than close the popup when the urlbar is emptied out,
-              // we want to send down our special blank popup experience data instead.
+              // we want to send down our special blank popup experience data instead
+              // ...except if we're on an about page
+              if (gBrowser.currentURI.scheme == 'about') {
+                console.log('on an about page, so, closing the popup');
+                this.popup.closePopup();
+                return;
+              }
 
-              // TODO: don't do this, because it prevents backspace key from actually
-              // being applied to, for example, a number of spaces in the urlbar.
-              //aEvent.preventDefault();
-              //aEvent.stopImmediatePropagation();
               
               // source the empty popup stuff
               // send it down
@@ -535,13 +537,6 @@
               }
             }
 
-            // we need to close the popup; tell the iframe
-            // we're temporarily disabling this while we get better at handling keys in the urlbar
-            console.log('about to temporarily not close the popup from inside my chunk of the code');
-            // gBrowser.yay.chan.send({
-            //   type: 'popupclose'
-            // }, gBrowser.yay.brow);
-            // this.popup.closePopup();
           } else if (['ArrowUp', 'ArrowDown', 'PageUp', 'PageDown', 'Tab'].indexOf(aEvent.key) > -1) {
             // TODO: either duplicate or simply reuse the remaining key handling behavior below, like the bit
             // where we ignore keys that are part of a keyboard shortcut
