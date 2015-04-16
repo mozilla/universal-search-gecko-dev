@@ -1467,6 +1467,20 @@ extends="chrome://global/content/bindings/popup.xml#popup">
           // them as JSON, and toss over the wall to the iframe.
           // let's start there.
 
+
+          // if the popup has just opened, then it's possible we want the empty popup
+          // experience. this could happen in exactly two cases: 1, the urlbar is empty;
+          // 2, the urlbar contains a url and the entire thing is selected (this is the
+          // default behavior when you click or tab into the urlbar.
+          // so, check for these two cases before continuing.
+          function _isEntireUrlSelected() {
+            var startsAtZero = (gURLBar.selectionStart === 0);
+            var containsAllChars = (gURLBar.selectionEnd === gURLBar.inputField.value.length);
+            return startsAtZero && containsAllChars;
+          }
+          if (!gURLBar.inputField.value.length || _isEntireUrlSelected()) { return; }
+
+
           var controller = this.mInput.controller;
           var maxResults = 5;
 
