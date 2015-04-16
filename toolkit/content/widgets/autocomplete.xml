@@ -1151,8 +1151,8 @@ extends="chrome://global/content/bindings/popup.xml#popup">
           console.log('TabOpen event handled, hiding the popup');
           this.hidePopup();
         }
-        gBrowser.tabContainer.addEventListener("TabSelect", onTabSelected.bind(this))
-        gBrowser.tabContainer.addEventListener("TabOpen", onTabOpened.bind(this))
+        // gBrowser.tabContainer.addEventListener("TabSelect", onTabSelected.bind(this))
+        // gBrowser.tabContainer.addEventListener("TabOpen", onTabOpened.bind(this))
 
 
         // TODO: we are sort of doing the same initialization twice, because using 'this'

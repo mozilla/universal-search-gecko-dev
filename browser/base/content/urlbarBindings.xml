@@ -933,10 +933,6 @@ file, You can obtain one at http://mozilla.org/MPL/2.0/.
       ]]></handler>
 
       <handler event="focus" phase="capturing"><![CDATA[
-        // TODO: if you're in a brand new tab, don't open the popup
-        if (!this.popupOpen) {
-          this.popupOpen = true;
-        }
         this._hideURLTooltip();
         this._clearFormatting();
       ]]></handler>
