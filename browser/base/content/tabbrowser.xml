@@ -1250,6 +1250,10 @@
           return;
         }
 
+        // I don't understand why we would leave the popup open if the URL bar
+        // does not retain focus. so let's just always close it.
+        gURLBar.closePopup();
+
         // Focus the location bar if it was previously focused for that tab.
         // In full screen mode, only bother making the location bar visible
         // if the tab is a blank one.
