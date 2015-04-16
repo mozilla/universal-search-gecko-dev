@@ -1157,6 +1157,45 @@ extends="chrome://global/content/bindings/popup.xml#popup">
         gBrowser.tabContainer.addEventListener("TabSelect", onTabSelected.bind(this))
         gBrowser.tabContainer.addEventListener("TabOpen", onTabOpened.bind(this))
 
+        function onURLBarFocused(evt) {
+          if (gBrowser.currentURI.scheme == 'about') { return; }
+
+          // open the popup & send some data down to the iframe
+          // XXX rather than hunt for the right args to pass into this.openPopup, just use gURLBar
+          gURLBar.openPopup();
+
+          Components.utils.import("resource://gre/modules/AutocompletePopupUtils.jsm");
+          Components.utils.import("resource://gre/modules/NewTabUtils.jsm");
+          var onError = function(err) {
+            console.log('failed to fetch empty-popup search data');
+            // TODO: should we bother sending down the frecency data anyway?
+            //       ...when would this even fail, though?
+          };
+          var sendResults = function(searches) {
+            var out = [];
+            searches.forEach(function(s) {
+              var result = s.result;
+              delete result.visitId;
+              delete result.id;
+              out.push({
+                searchTerms: s.query.searchTerms,
+                result: result
+              }); 
+            });
+            var data = {
+              frecentLinks: NewTabUtils.links.getLinks(),
+              searches: {
+                searchEngineName: Services.search.defaultEngine.name,
+                results: out
+              }
+            };
+            gBrowser.yay.chan.send({ type: 'empty-popup', data: data}, gBrowser.yay.brow);
+          };
+          AutocompletePopupUtils.getRecentSearches()
+            .then(sendResults, onError);
+        }
+        gURLBar.addEventListener("focus", onURLBarFocused.bind(this));
+
 
         // TODO: we are sort of doing the same initialization twice, because using 'this'
         // was more surprising than expected in XBL. Would be nice to either really use
@@ -1590,32 +1629,6 @@ extends="chrome://global/content/bindings/popup.xml#popup">
             return list;
           };
           gBrowser.yay.chan.send({ type: 'remote-tabs', data: { clients: _generateWeaveTabList() } }, gBrowser.yay.brow);
-
-
-
-
-
-
-
-
-
-
-
-
-// this is all the stuff we want to send when the popup is empty,
-// but let's see if the data really works before we mess iwth the popup show/hide behavior
-
-
-
-
-
-
-
-
-
-
-
-
 
 
           /* technically we don't even need this. boy we are hacking like crazy. 
