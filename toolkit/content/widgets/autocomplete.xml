@@ -490,6 +490,7 @@
 
             // ok, if the user selected something, we set state on gURLBar.
             if (aEvent.key == 'Enter') {
+              console.log('Enter key detected');
               if (gURLBar.search && gURLBar.search.term == gURLBar.value) {
                 // the user selected a search suggestion via keypresses, then hit enter.
                 // we know the suggestion is not stale, because it matches the current contents
@@ -500,6 +501,9 @@
                 // hmm, when we key over non-search values, hitting enter doesn't quite work.
                 // maybe just surf to whatever's in the urlbar?
                 gBrowser.loadURI(gURLBar.value);
+                // evidently we have to manually do this:
+                gURLBar.popup.hidePopup();
+
               }
             }
 
@@ -1158,7 +1162,6 @@ extends="chrome://global/content/bindings/popup.xml#popup">
         }
         gURLBar.addEventListener("focus", onURLBarFocused.bind(this));
 
-
         // TODO: we are sort of doing the same initialization twice, because using 'this'
         // was more surprising than expected in XBL. Would be nice to either really use
         // this.mChannel, or just get rid of it, and accept that this branch just always
@@ -1478,7 +1481,10 @@ extends="chrome://global/content/bindings/popup.xml#popup">
             var containsAllChars = (gURLBar.selectionEnd === gURLBar.inputField.value.length);
             return startsAtZero && containsAllChars;
           }
-          if (!gURLBar.inputField.value.length || _isEntireUrlSelected()) { return; }
+          if (!gURLBar.inputField.value.length || _isEntireUrlSelected()) {
+            console.log("seems like the empty popup experience, so, not sending down anything");
+            return;
+          }
 
 
           var controller = this.mInput.controller;
