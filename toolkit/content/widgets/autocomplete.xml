@@ -1137,6 +1137,12 @@ extends="chrome://global/content/bindings/popup.xml#popup">
 
           // open the popup & send some data down to the iframe
           // XXX rather than hunt for the right args to pass into this.openPopup, just use gURLBar
+          // TODO the problem is that openPopup naively always sends down the non-empty popup stuff.
+          //      so, what's the fastest way to either send one or the other?
+          //      maybe we have one function that sends one or the other, we pull that out of the
+          //      UI flow. not really clear how we would do that, throttling it would be complex, since
+          //      additional keys could be pressed very quickly, and yet we also can't just wait a turn,
+          //      since all the DB fetches require waiting a turn.
           gURLBar.openPopup();
 
           Components.utils.import("resource://gre/modules/AutocompletePopupUtils.jsm");
