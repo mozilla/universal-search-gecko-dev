@@ -1127,6 +1127,11 @@ extends="chrome://global/content/bindings/popup.xml#popup">
           console.log('onURLBarFocused');
           if (gBrowser.currentURI.scheme == 'about') { return; }
 
+          // note: if I don't set the event as handled here, then the popup controller
+          // will send down all the usual stuff as well, which we don't need or want
+          // in the case of the empty popup.
+          evt.stopImmediatePropagation();
+
           // open the popup & send some data down to the iframe
           // XXX rather than hunt for the right args to pass into this.openPopup, just use gURLBar
           gURLBar.openPopup();
