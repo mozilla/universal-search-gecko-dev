@@ -420,6 +420,7 @@
       <method name="onKeyPress">
         <parameter name="aEvent"/>
         <body><![CDATA[
+          console.log('onKeyPress handler invoked');
           // todo: figure out what this refers to: "let child buttons of autocomplete take input"
           if (aEvent.target.localName != "textbox")
             return true; // Let child buttons of autocomplete take input
@@ -1444,7 +1445,7 @@ extends="chrome://global/content/bindings/popup.xml#popup">
       <method name="_appendCurrentResult">
         <body>
           <![CDATA[
-          //console.log('_appendCurrentResult called');
+          console.log('_appendCurrentResult called');
 
           // meaning of the original XUL code:
           //
