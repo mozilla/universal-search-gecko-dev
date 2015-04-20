@@ -420,7 +420,7 @@
       <method name="onKeyPress">
         <parameter name="aEvent"/>
         <body><![CDATA[
-          console.log('onKeyPress handler invoked');
+          console.log('onKeyPress');
           // todo: figure out what this refers to: "let child buttons of autocomplete take input"
           if (aEvent.target.localName != "textbox")
             return true; // Let child buttons of autocomplete take input
@@ -638,6 +638,7 @@
       <method name="_focus">
         <!-- doesn't reset this.mController -->
         <body><![CDATA[
+          console.log("_focus");
           this._dontBlur = true;
           this.focus();
           this._dontBlur = false;
@@ -674,8 +675,10 @@
       <method name="onInput">
         <parameter name="aEvent"/>
         <body><![CDATA[
+          console.log('onInput');
           if (!this.mIgnoreInput && this.mController.input == this) {
             this.valueIsTyped = true;
+            // TODO: pretty sure this is the reason empty popup is sending other stuff too
             this.mController.handleText();
           }
           this.resetActionType();
@@ -1293,6 +1296,7 @@ extends="chrome://global/content/bindings/popup.xml#popup">
         <parameter name="aElement"/>
         <body>
           <![CDATA[
+          console.log('_openAutocompletePopup');
           if (!this.mPopupOpen) {
             this.mInput = aInput;
             // clear any previous selection, see bugs 400671 and 488357
@@ -1315,6 +1319,7 @@ extends="chrome://global/content/bindings/popup.xml#popup">
       <method name="invalidate">
         <body>
           <![CDATA[
+          console.log('invalidate');
           // Don't bother doing work if we're not even showing
           if (!this.mPopupOpen)
             return;
@@ -1327,6 +1332,7 @@ extends="chrome://global/content/bindings/popup.xml#popup">
       <method name="_invalidate">
         <body>
           <![CDATA[
+          console.log('_invalidate');
           // always collapse the xul result list box
           this.richlistbox.collapsed = true;
 
