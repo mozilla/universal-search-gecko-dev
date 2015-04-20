@@ -459,7 +459,7 @@
               Components.utils.import("resource://gre/modules/AutocompletePopupUtils.jsm");
               Components.utils.import("resource://gre/modules/NewTabUtils.jsm");
               var onError = function(err) {
-                console.log('failed to fetch empty-popup search data');
+                console.log('failed to fetch empty-popup search data',err);
                 // TODO: should we bother sending down the frecency data anyway?
                 //       ...when would this even fail, though?
               };
@@ -1124,6 +1124,7 @@ extends="chrome://global/content/bindings/popup.xml#popup">
         gBrowser.tabContainer.addEventListener("TabOpen", onTabOpened.bind(this))
 
         function onURLBarFocused(evt) {
+          console.log('onURLBarFocused');
           if (gBrowser.currentURI.scheme == 'about') { return; }
 
           // open the popup & send some data down to the iframe
@@ -1133,7 +1134,7 @@ extends="chrome://global/content/bindings/popup.xml#popup">
           Components.utils.import("resource://gre/modules/AutocompletePopupUtils.jsm");
           Components.utils.import("resource://gre/modules/NewTabUtils.jsm");
           var onError = function(err) {
-            console.log('failed to fetch empty-popup search data');
+            console.log('failed to fetch empty-popup search data', err);
             // TODO: should we bother sending down the frecency data anyway?
             //       ...when would this even fail, though?
           };

@@ -139,28 +139,32 @@ var searchRecords = {
 
 var onError = function(err) {
   isRunning = false;
-  return Promise.reject(); // TODO is this correct? or do I just return?
+  return Promise.reject(err); // TODO is this correct? or do I just return?
 };
 
 var getRecentSearches = function(db) {
-  // first, grab the search provider's default url, minus the query string
-  // for example, for google en-US this is "https://www.google.com/search?q=&ie=utf-8&oe=utf-8"
-  // the cheapest way: url.split('?')[0].
-  // (TODO the right way: nsIURL something-or-other...)
-  var searchPage = Services.search.defaultEngine.searchForm;
-  var searchURL = searchPage.split('?')[0];
-  // sqlite syntax: LIKE "foo%" means "starts with foo"
-  var likeSearchURL = searchURL + '%'; 
-  // ok, now grab the most recent 50 history items with that URL.
-  // we need to grab a lot of items because these searches may not have led
-  // to a result page - for instance, if the person doesn't like results and
-  // types a new query into the search bar.
-  var recentSearchesQuery = 'SELECT p.id, p.url, p.title, v.id AS visitId ' +
-    'FROM moz_places p, moz_historyvisits v ' +
-    'WHERE p.id = v.place_id AND p.url LIKE :engineURL ' +
-    'ORDER BY v.visit_date DESC LIMIT 100;';
-  recentSearchesQuery = recentSearchesQuery.replace(":engineURL", '"' + likeSearchURL + '"');
-  return db.execute(recentSearchesQuery);
+  try {
+    // first, grab the search provider's default url, minus the query string
+    // for example, for google en-US this is "https://www.google.com/search?q=&ie=utf-8&oe=utf-8"
+    // the cheapest way: url.split('?')[0].
+    // (TODO the right way: nsIURL something-or-other...)
+    var searchPage = Services.search.defaultEngine.searchForm;
+    var searchURL = searchPage.split('?')[0];
+    // sqlite syntax: LIKE "foo%" means "starts with foo"
+    var likeSearchURL = searchURL + '%'; 
+    // ok, now grab the most recent 50 history items with that URL.
+    // we need to grab a lot of items because these searches may not have led
+    // to a result page - for instance, if the person doesn't like results and
+    // types a new query into the search bar.
+    var recentSearchesQuery = 'SELECT p.id, p.url, p.title, v.id AS visitId ' +
+      'FROM moz_places p, moz_historyvisits v ' +
+      'WHERE p.id = v.place_id AND p.url LIKE :engineURL ' +
+      'ORDER BY v.visit_date DESC LIMIT 100;';
+    recentSearchesQuery = recentSearchesQuery.replace(":engineURL", '"' + likeSearchURL + '"');
+    return db.execute(recentSearchesQuery);
+  } catch (ex) {
+    return Promise.reject(ex);
+  }
 };
 
 // the DB returns us some kind of funky wrapped XPCOM object.
@@ -168,53 +172,65 @@ var getRecentSearches = function(db) {
 // them into an array, and pass that down the promise chain.
 var processRecentSearches = function(recentSearches) {
   var processed = [];
-  recentSearches.forEach(function(r) {
-    searchRecords.addQuery(
-      r.getResultByName('id'),
-      r.getResultByName('url'),
-      r.getResultByName('title'),
-      r.getResultByName('visitId')
-    );
-  });
-  // TODO: do we reject if there were no results?
-  return Promise.resolve();
+  try {
+    recentSearches.forEach(function(r) {
+      searchRecords.addQuery(
+        r.getResultByName('id'),
+        r.getResultByName('url'),
+        r.getResultByName('title'),
+        r.getResultByName('visitId')
+      );
+    });
+    // TODO: do we reject if there were no results?
+    return Promise.resolve();
+  } catch (ex) {
+    return Promise.reject(ex);
+  }
 };
 
 var getNextVisits = function(visitIDs) {
-  // if no visit IDs were passed in, then maybe we were done on the first hop
-  // and this is the second hop; just return an empty array, rather than throw
-  if (!visitIDs || !visitIDs.length) { return Promise.resolve([]); }
+  try {
+    // if no visit IDs were passed in, then maybe we were done on the first hop
+    // and this is the second hop; just return an empty array, rather than throw
+    if (!visitIDs || !visitIDs.length) { return Promise.resolve([]); }
 
-  // find page visits which have the supplied visit IDs as referrers
-  var nextStepQuery = "SELECT p.id, p.url, p.title, v.id as visitId, v.from_visit as fromVisit " +
-    "FROM moz_places p, moz_historyvisits v " +
-    "WHERE p.id = v.place_id AND v.from_visit IN :searches;";
-  nextStepQuery = nextStepQuery.replace(':searches', '(' + visitIDs.join(', ') + ')');
-  //TODO: do we have to manually shut down the PlacesUtils DB connections?
-  // TODO: not sure why, but I can't just pass the stringified array into the query.
-  //       I have to manually do the substitution. Why?
-  return PlacesUtils.promiseDBConnection().then(function(db) {
-    return db.execute(nextStepQuery);
-  });
+    // find page visits which have the supplied visit IDs as referrers
+    var nextStepQuery = "SELECT p.id, p.url, p.title, v.id as visitId, v.from_visit as fromVisit " +
+      "FROM moz_places p, moz_historyvisits v " +
+      "WHERE p.id = v.place_id AND v.from_visit IN :searches;";
+    nextStepQuery = nextStepQuery.replace(':searches', '(' + visitIDs.join(', ') + ')');
+    //TODO: do we have to manually shut down the PlacesUtils DB connections?
+    // TODO: not sure why, but I can't just pass the stringified array into the query.
+    //       I have to manually do the substitution. Why?
+    return PlacesUtils.promiseDBConnection().then(function(db) {
+      return db.execute(nextStepQuery);
+    });
+  } catch (ex) {
+    return Promise.reject(ex);
+  }
 };
 
 var processResultPages = function(rows) {
-  rows.forEach(function(p) {
-    // fromVisit is how we get back to the original item
-    // in the case of multiple hops, we overwrite the previous result
+  try {
+    rows.forEach(function(p) {
+      // fromVisit is how we get back to the original item
+      // in the case of multiple hops, we overwrite the previous result
 
-    // actually, the above seems to be wrong! I think I swapped it!
-    searchRecords.setResult(
-      p.getResultByName('fromVisit'),
-      p.getResultByName('id'),
-      p.getResultByName('url'),
-      p.getResultByName('title'),
-      p.getResultByName('visitId')
-    );
-  });
-  isRunning = false; // unset our horrible global state tracker
-  var finalResults = searchRecords.getCompletedSearches();
-  return Promise.resolve(finalResults);
+      // actually, the above seems to be wrong! I think I swapped it!
+      searchRecords.setResult(
+        p.getResultByName('fromVisit'),
+        p.getResultByName('id'),
+        p.getResultByName('url'),
+        p.getResultByName('title'),
+        p.getResultByName('visitId')
+      );
+    });
+    isRunning = false; // unset our horrible global state tracker
+    var finalResults = searchRecords.getCompletedSearches();
+    return Promise.resolve(finalResults);
+  } catch(ex) {
+    return Promise.reject(ex);
+  }
 };
 
 var isRunning = false;
