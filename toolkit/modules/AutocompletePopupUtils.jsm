@@ -51,7 +51,7 @@ var searchRecords = {
     if (!query) { return searchURL; }
 
     // string.replace with 'g' flag gets a thumbs down from MDN, so:
-    return decodeURIComponent(query.split('+').join(' '));
+    return decodeURIComponent(query[1].split('+').join(' '));
   },
   addQuery: function(id, url, title, visitId) {
     var result = {
