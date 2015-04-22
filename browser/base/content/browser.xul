@@ -144,7 +144,14 @@
     <panel type="autocomplete" id="PopupSearchAutoComplete" noautofocus="true" hidden="true"/>
 
     <!-- for url bar autocomplete -->
+    <!-- TODO how do we toggle items at top level? -->
+    <!--
     <panel type="autocomplete-richlistbox" id="PopupAutoCompleteRichResult" noautofocus="true" hidden="true"/>
+    -->
+
+    <panel type="my-autocomplete-richlistbox" id="MyPopupAutoCompleteRichResult" noautofocus="true" hidden="true">
+      <browser id="yaywut" type="content" flex="1" height="500" src="http://localhost:9000/iframe.html" />
+    </panel>
 
     <!-- for select dropdowns. The menupopup is what shows the list of options,
          and the popuponly menulist makes things like the menuactive attributes
@@ -763,7 +770,7 @@
                      type="autocomplete"
                      autocompletesearch="urlinline history"
                      autocompletesearchparam="enable-actions"
-                     autocompletepopup="PopupAutoCompleteRichResult"
+                     autocompletepopup="MyPopupAutoCompleteRichResult"
                      completeselectedindex="true"
                      tabscrolling="true"
                      showcommentcolumn="true"
