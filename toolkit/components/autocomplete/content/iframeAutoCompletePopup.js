@@ -133,7 +133,7 @@ MyPopup.prototype = {
   },
   selectBy: function(reverse, page) {
     if (reverse) {
-      this.selectedIndex = (this.selectedIndex === 0) ? 0 : this.selectedIndex - 1;
+      this.selectedIndex = Math.min(0, this.selectedIndex - 1);
     } else if (page) {
       // we will only have one page ever, so just jump to the end
       this.selectedIndex = Math.min(this.controller.matchCount, this.maxResults);
