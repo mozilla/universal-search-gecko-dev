@@ -103,13 +103,11 @@ MyPopup.prototype = {
   get popupOpen() {
     return this._popupOpen;
   },
+  // XXX assuming isOpen is boolean...safe assumption?
   set popupOpen(isOpen) {
-    this._popupOpen = !!isOpen;
+    this._popupOpen = isOpen;
     // TODO better to notify iframe on 'popuphiding' / 'popupshowing' instead?
     this._sendPopupState(!!isOpen);
-    if (!this._popupOpen) {
-      this.selectedIndex = -1;
-    }
   },
   _selectedIndex: -1,
   get selectedIndex() {
@@ -154,7 +152,6 @@ MyPopup.prototype = {
     var matchCount = Math.min(this.controller.matchCount, this.maxResults);
     if (!matchCount) {
       // hide when there's no matches
-      this.selectedIndex = -1;
       this.popupOpen = false;
       return;
     }
@@ -163,7 +160,7 @@ MyPopup.prototype = {
       results.push({
         url: Cc["@mozilla.org/intl/texttosuburi;1"].getService(Ci.nsITextToSubURI).
              unEscapeURIForUI("UTF-8", this.controller.getValueAt(i)),
-        image: _getImageURLForResolution(window, this.controller.getImageAt(i), 16, 16),
+        image: this._getImageURLForResolution(window, this.controller.getImageAt(i), 16, 16),
         title: this.controller.getCommentAt(i),
         type: this.controller.getStyleAt(i),
         text: this.controller.searchString.trim()
