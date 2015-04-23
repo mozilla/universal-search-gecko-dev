@@ -45,6 +45,8 @@ function MyPopup() {
   }
 };
 MyPopup.prototype = {
+  // TODO: should maxResults account for zero-indexed controller?
+  //       that is, if we show at most 5 results, should maxResults = 4?
   maxResults: 6,
 
   // WebChannel-related stuff
@@ -105,12 +107,30 @@ MyPopup.prototype = {
     this._popupOpen = !!isOpen;
     // TODO better to notify iframe on 'popuphiding' / 'popupshowing' instead?
     this._sendPopupState(!!isOpen);
+    if (!this._popupOpen) {
+      this.selectedIndex = -1;
+    }
   },
-  selectedIndex: -1, // TODO setter should fire 'selected' message to the iframe
-    // get: return the value
-    // set: if value is outside the range, constrain it to the range
-    //      if value is set to -1, I guess we close the popup? or do we assume it's been closed?
-    //      then fire the selectedIndex event to the iframe
+  _selectedIndex: -1,
+  get selectedIndex() {
+    return this._selectedIndex;
+  },
+  // we assume setting selectedIndex to -1 doesn't auto-close the popup,
+  // instead, closing the popup auto-sets the selectedIndex to -1.
+  // TODO: verify this assumption matches the existing controller behavior.
+  set selectedIndex(val) {
+    var maxValue = Math.min(this.controller.matchCount, this.maxResults);
+    if (val < -1) {
+      val = -1;
+    } else if (val > maxValue) {
+      val = maxValue;
+    }
+    this._selectedIndex = val;
+    // if val is -1, we're closing anyway, no need to update selectedIndex on frame
+    if (val > -1) {
+      this._sendSelectedIndex(val);
+    }
+  },
   selectBy: function(reverse, page) {
     if (reverse) {
       this.selectedIndex = (this.selectedIndex === 0) ? 0 : this.selectedIndex - 1;
