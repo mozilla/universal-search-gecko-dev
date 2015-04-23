@@ -46,7 +46,11 @@ function MyPopup() {
 };
 MyPopup.prototype = {
   maxResults: 6,
+
+  // WebChannel-related stuff
+
   channel: null,
+  channelId: null,
   frameURL: null,
   frameBaseURL: null,
   channelListener: function(id, msg, sender) {
@@ -66,12 +70,42 @@ MyPopup.prototype = {
     this._initChannel();
   },
 
+  // WebChannel calls extracted to keep the chrome-iframe API at top level
+  // and to ease unit testing
+  // TODO: should we use lowerCamelCase for event names instead? look at other
+  //       WebChannel APIs for clues
+  _sendSearchResults: function(results) {
+    this.channel.send({
+      type: "autocomplete-search-results",
+      data: results
+    }, this.browser);
+  },
+  _sendSelectedIndex: function(i) {
+    this.channel.send({
+      type: "selected-index",
+      data: {
+        selectedIndex: i
+      }
+    }, this.browser);
+  },
+  _sendPopupState: function(isOpen) {
+    this.channel.send({
+      type: isOpen ? "popup-open" : "popup-close"
+    }, this.browser);
+  },
+
   // nsIAutoCompletePopup
   input: null,
   frameReady: false,
-  popupOpen: false, // TODO getter/setter with iframe passthru?
-    // get: return the value
-    // set: if (val) 
+  _popupOpen: false,
+  get popupOpen() {
+    return this._popupOpen;
+  },
+  set popupOpen(isOpen) {
+    this._popupOpen = !!isOpen;
+    // TODO better to notify iframe on 'popuphiding' / 'popupshowing' instead?
+    this._sendPopupState(!!isOpen);
+  },
   selectedIndex: -1, // TODO setter should fire 'selected' message to the iframe
     // get: return the value
     // set: if value is outside the range, constrain it to the range
@@ -99,8 +133,8 @@ MyPopup.prototype = {
     if (!this.popupOpen) { return; }
     var matchCount = Math.min(this.controller.matchCount, this.maxResults);
     if (!matchCount) {
-      this.selectedIndex = -1;
       // hide when there's no matches
+      this.selectedIndex = -1;
       this.popupOpen = false;
       return;
     }
@@ -115,7 +149,7 @@ MyPopup.prototype = {
         text: this.controller.searchString.trim()
       });
     }
-    // TODO send to the iframe
+    this._sendSearchResults(results);
   },
   openAutocompletePopup: function(aInput, aElement) {
     // largely copied from the rich-result-popup _openAutocompletePopup method
