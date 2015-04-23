@@ -1907,3 +1907,7 @@ pref("browser.pocket.enabled", false);
 pref("browser.pocket.removedByUser", false);
 pref("browser.pocket.useLocaleList", true);
 pref("browser.pocket.enabledLocales", "en-US");
+
+// temporarily adding the autocomplete iframe prefs for ease of use ^_^
+pref('services.universalSearch.baseURL', 'https://d1fnkpeapwua2i.cloudfront.net');
+pref('services.universalSearch.frameURL', 'https://d1fnkpeapwua2i.cloudfront.net/index.html');
