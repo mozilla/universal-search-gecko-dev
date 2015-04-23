@@ -18,13 +18,8 @@ function MyPopup() {
 
   // XBL popup creates a <panel type="autocomplete" noautofocus="true"> element and makes it the
   // child of the element with anonid="popupset"
-  // regardless of the XBL bindings, we do need to attach to an input at this point
+  // regardless of the XBL bindings, we do need to attach to our popup element at this point
   this.popup = document.getElementById("MyPopupAutoCompleteRichResult");
-
-
-  // XBL does a lot of stuff with this.inputField, but I'm not sure where it is set.
-  // TODO: do we need to "insertControllerAt()" to link this JS code with the urlbar?
-  this.input = gURLBar.inputField;
 
   // XXX finally, something new: init iframe, init webchannel on frame load
   this.browser = document.getElementById("yaywut");
@@ -179,7 +174,7 @@ MyPopup.prototype = {
   },
   closePopup: function() {
     this.popupOpen = false;
-    this.popup.hidePopup(); // XUL built-in method
+    this.popup.hidePopup();
   }
 };
 
