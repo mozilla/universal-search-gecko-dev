@@ -39,7 +39,7 @@ function MyPopup() {
   // 1. load the frame in the browser.
   // 2. init the webchannel connection to the browser frame.
   if (!this.initialized) {
-    this.browser.addEventListneer('load', this._onBrowserLoaded.bind(this), true);
+    this.browser.addEventListener('load', this._onBrowserLoaded.bind(this), true);
     this.browser.setAttribute('src', this.frameURL + "?cachebust=" + Date.now());
     this.initialized = true;
   }
@@ -70,7 +70,13 @@ MyPopup.prototype = {
   input: null,
   frameReady: false,
   popupOpen: false, // TODO getter/setter with iframe passthru?
+    // get: return the value
+    // set: if (val) 
   selectedIndex: -1, // TODO setter should fire 'selected' message to the iframe
+    // get: return the value
+    // set: if value is outside the range, constrain it to the range
+    //      if value is set to -1, I guess we close the popup? or do we assume it's been closed?
+    //      then fire the selectedIndex event to the iframe
   selectBy: function(reverse, page) {
     if (reverse) {
       this.selectedIndex = (this.selectedIndex === 0) ? 0 : this.selectedIndex - 1;
@@ -79,11 +85,20 @@ MyPopup.prototype = {
       this.selectedIndex = Math.min(this.controller.matchCount, this.maxResults);
     }
   },
+  _getImageURLForResolution: function(aWin, aURL, aWidth, aHeight) {
+    // lifted directly from XBL
+    if (!aURL.endsWith('.ico') && !aURL.endsWith('.ICO')) {
+      return aURL;
+    }
+    let width = Math.round(aWidth * aWin.devicePixelRatio);
+    let height = Math.round(aHeight * aWin.devicePixelRatio);
+    return aURL + (aURL.contains("#") ? "&" : "#") +
+           "-moz-resolution=" + width + "," + height;
+  },
   invalidate: function() {
     if (!this.popupOpen) { return; }
     var matchCount = Math.min(this.controller.matchCount, this.maxResults);
     if (!matchCount) {
-      // XXX setting selectedIndex will fire a 'selectedIndex' msg down to iframe
       this.selectedIndex = -1;
       // hide when there's no matches
       this.popupOpen = false;
@@ -94,7 +109,7 @@ MyPopup.prototype = {
       results.push({
         url: Cc["@mozilla.org/intl/texttosuburi;1"].getService(Ci.nsITextToSubURI).
              unEscapeURIForUI("UTF-8", this.controller.getValueAt(i)),
-        image: null, // TODO _getImageURLForResolution
+        image: _getImageURLForResolution(window, this.controller.getImageAt(i), 16, 16),
         title: this.controller.getCommentAt(i),
         type: this.controller.getStyleAt(i),
         text: this.controller.searchString.trim()
