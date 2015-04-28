@@ -77,9 +77,7 @@ add_task(function test_web_channel_broker_listener() {
       },
       principal: {
         origin: URL_STRING
-      },
-      objects: {
-      },
+      }
     };
 
     WebChannelBroker._listener(mockEvent);
