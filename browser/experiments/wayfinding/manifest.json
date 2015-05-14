@@ -1,0 +1,19 @@
+{
+  "publish"     : true,
+  "priority"    : 10,
+  "name"        : "Invisible test for evaluating user wayfinding strategies.",
+  "description" : "",
+  "info"        : "<p><a href=\"https://bugzilla.mozilla.org/show_bug.cgi?id=REPLACE_ME_WITH_BUG_NUMBER\">Related bug</a></p>",
+  "manifest"    : {
+    "id"               : "experiment-wayfinding@experiments.mozilla.org",
+    "startTime"        : " TODO unix timestamp",
+    "endTime"          : " TODO unix timestamp",
+    "maxActiveSeconds" : " TODO active time in seconds",
+    "appName"          : ["Firefox"],
+    "channel"          : ["nightly"],
+    "minVersion"       : "39.0",
+    "maxVersion"       : "40.*",
+    "minBuildID"       : "20140820030202", TODO what should this be?
+    "sample"           : 0.5 TODO do we sample some or all?
+  }
+}
